@@ -1,0 +1,40 @@
+TypeError: Cannot subtract tz-naive and tz-aware datetime-like objects.
+
+Traceback:
+
+File "C:\Users\hadim\OneDrive\Documents\Kuliah\Project_Andra\tiktok-prediction-system\pages\4_🔧_Data_Preprocessing.py", line 358, in <module>
+    df_processed = preprocess_raw_data(df_raw, reference_time)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\OneDrive\Documents\Kuliah\Project_Andra\tiktok-prediction-system\pages\4_🔧_Data_Preprocessing.py", line 166, in preprocess_raw_data
+    df['Jam_Sejak_Publikasi'] = df['createTimeISO'].apply(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\series.py", line 4924, in apply
+    ).apply()
+      ^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\apply.py", line 1427, in apply
+    return self.apply_standard()
+           ^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\apply.py", line 1507, in apply_standard
+    mapped = obj._map_values(
+             ^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\base.py", line 919, in _map_values
+    return arr.map(mapper, na_action=na_action)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\arrays\_mixins.py", line 81, in method
+    return meth(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\arrays\datetimelike.py", line 740, in map
+    result = map_array(self, mapper, na_action=na_action)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\AppData\Roaming\Python\Python312\site-packages\pandas\core\algorithms.py", line 1743, in map_array
+    return lib.map_infer(values, mapper, convert=convert)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "lib.pyx", line 2972, in pandas._libs.lib.map_infer
+File "C:\Users\hadim\OneDrive\Documents\Kuliah\Project_Andra\tiktok-prediction-system\pages\4_🔧_Data_Preprocessing.py", line 167, in <lambda>
+    lambda x: calculate_hours_since_publish(x, reference_time)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\hadim\OneDrive\Documents\Kuliah\Project_Andra\tiktok-prediction-system\pages\4_🔧_Data_Preprocessing.py", line 122, in calculate_hours_since_publish
+    time_diff = reference_time - upload_time
+                ~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+File "timestamps.pyx", line 546, in pandas._libs.tslibs.timestamps._Timestamp.__rsub__
+File "timestamps.pyx", line 514, in pandas._libs.tslibs.timestamps._Timestamp.__sub__

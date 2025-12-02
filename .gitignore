@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+*.csv
+*.xlsx
+!data/dataset_tiktok.csv
+
+# Temp files
+inspect_model.py
+test_phase1.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
