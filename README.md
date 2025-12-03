@@ -30,11 +30,13 @@ Sistem prediksi performa konten TikTok menggunakan Random Forest Classifier untu
 ## 🎓 Tentang Proyek
 
 **TikTok Content Performance Prediction System** adalah aplikasi web berbasis machine learning yang dirancang untuk:
+
 - Menganalisis performa konten TikTok
 - Memprediksi potensi trending suatu video
 - Memberikan rekomendasi strategi konten berbasis data
 
 ### Academic Context
+
 - **Tugas Akhir Skripsi**: Implementasi Data Mining untuk Prediksi Trending Video TikTok
 - **Institution**: UPN Veteran Jakarta - Fakultas Ilmu Komputer, S1 Sistem Informasi
 - **Target User**: Content Creator @septianndt
@@ -45,7 +47,9 @@ Sistem prediksi performa konten TikTok menggunakan Random Forest Classifier untu
 ## ✨ Fitur Utama
 
 ### 1. 📊 Dashboard Analitik
+
 Analisis komprehensif performa konten dengan fitur:
+
 - **Overview Metrics**: KPI cards dengan statistik ringkasan
 - **Temporal Analysis**: Performa berdasarkan hari dan jam upload
 - **Content Type Analysis**: Perbandingan tipe konten (OOTD, Tutorial, Vlog, dll)
@@ -55,7 +59,9 @@ Analisis komprehensif performa konten dengan fitur:
 - **Key Insights**: Rekomendasi berbasis data untuk optimasi konten
 
 ### 2. 🔮 Prediksi Tunggal
+
 Form interaktif untuk prediksi individual dengan:
+
 - **Input Form**: 22 features lengkap dengan helper text
 - **Real-time Prediction**: Hasil prediksi Trending/Tidak Trending
 - **Confidence Score**: Tingkat keyakinan model dengan probability breakdown
@@ -64,7 +70,9 @@ Form interaktif untuk prediksi individual dengan:
 - **Comparison Table**: Perbandingan input dengan rata-rata dataset
 
 ### 3. 📤 Prediksi Massal
+
 Batch prediction via CSV upload dengan:
+
 - **Template CSV**: Download template dengan format lengkap
 - **File Validation**: Pengecekan kolom dan tipe data
 - **Bulk Processing**: Prediksi untuk ratusan video sekaligus
@@ -77,6 +85,7 @@ Batch prediction via CSV upload dengan:
 ## 🛠️ Tech Stack
 
 ### Framework & Libraries
+
 - **Streamlit** 1.51.0 - Web application framework
 - **scikit-learn** 1.7.2 - Machine learning model
 - **Pandas** 2.2.2 - Data manipulation
@@ -85,6 +94,7 @@ Batch prediction via CSV upload dengan:
 - **openpyxl** 3.1.5 - Excel file support
 
 ### Machine Learning
+
 - **Model**: Random Forest Classifier
 - **Trees**: 100
 - **Max Depth**: 3
@@ -92,6 +102,7 @@ Batch prediction via CSV upload dengan:
 - **Classes**: Binary (0=Tidak Trending, 1=Trending)
 
 ### Development Tools
+
 - **Python**: 3.8+
 - **IDE**: VSCode with Claude Code
 - **Documentation**: CLAUDE.md for project context
@@ -101,17 +112,20 @@ Batch prediction via CSV upload dengan:
 ## 📦 Instalasi
 
 ### Prerequisites
+
 - Python 3.8 atau lebih tinggi
 - pip (Python package manager)
 - Git (opsional)
 
 ### Step 1: Clone Repository
+
 ```bash
 git clone <repository-url>
 cd tiktok-prediction-system
 ```
 
 ### Step 2: Create Virtual Environment (Recommended)
+
 ```bash
 # Windows
 python -m venv venv
@@ -123,11 +137,13 @@ source venv/bin/activate
 ```
 
 ### Step 3: Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Step 4: Verify Installation
+
 ```bash
 streamlit --version
 ```
@@ -139,22 +155,27 @@ streamlit --version
 ### Running the Application
 
 #### Method 1: Standard Run
+
 ```bash
 streamlit run app.py
 ```
 
 #### Method 2: Custom Port
+
 ```bash
 streamlit run app.py --server.port 8502
 ```
 
 #### Method 3: Headless Mode
+
 ```bash
 streamlit run app.py --server.headless=true
 ```
 
 ### Accessing the Application
+
 Setelah aplikasi berjalan, buka browser dan akses:
+
 - **Local**: http://localhost:8501
 - **Network**: http://<your-ip>:8501
 
@@ -165,6 +186,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 ### 1. Dashboard Analitik
 
 **Langkah-langkah:**
+
 1. Buka halaman **Analytics Dashboard** dari menu sidebar
 2. Lihat ringkasan performa di bagian atas (KPI cards)
 3. Scroll ke bawah untuk melihat analisis temporal (hari & jam terbaik)
@@ -173,6 +195,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 6. Gunakan filter di sidebar untuk analisis spesifik
 
 **Tips:**
+
 - Hover di atas chart untuk detail lebih lanjut
 - Klik dan drag untuk zoom in pada chart
 - Gunakan range slider pada time series untuk fokus periode tertentu
@@ -180,6 +203,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 ### 2. Prediksi Tunggal
 
 **Langkah-langkah:**
+
 1. Buka halaman **Prediction** dari menu sidebar
 2. Isi form dengan informasi video:
    - **Engagement Metrics**: Estimasi likes, comments, shares
@@ -191,6 +215,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 6. Baca rekomendasi untuk optimasi konten
 
 **Tips:**
+
 - Gunakan nilai rata-rata sebagai panduan (ditampilkan di helper text)
 - Default values sudah diset ke nilai optimal berdasarkan analisis
 - Fokus pada faktor dengan importance tinggi untuk hasil terbaik
@@ -198,6 +223,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 ### 3. Prediksi Massal
 
 **Langkah-langkah:**
+
 1. Buka halaman **Batch Prediction** dari menu sidebar
 2. Download template CSV menggunakan tombol **"📥 Unduh Template CSV"**
 3. Buka template di Excel/Google Sheets
@@ -210,6 +236,7 @@ Setelah aplikasi berjalan, buka browser dan akses:
 10. Download hasil dalam format CSV atau Excel
 
 **Tips:**
+
 - Gunakan kolom `Actual` untuk membandingkan prediksi dengan hasil sebenarnya
 - Tambahkan kolom `Video_ID` dan `Caption` untuk identifikasi lebih mudah
 - Untuk dataset besar (>100 rows), proses mungkin membutuhkan waktu beberapa detik
@@ -237,11 +264,6 @@ tiktok-prediction-system/
 │   └── dataset_tiktok.csv              # TikTok analytics data (159 videos)
 ├── .streamlit/                         # Streamlit configuration
 │   └── config.toml                     # Theme and server settings
-├── .claude/                            # Documentation
-│   ├── CLAUDE.md                       # Project context & phases
-│   ├── Readme.md                       # Additional info
-│   └── Skills/
-│       └── SKILL_INDONESIAN_UI.md      # UI language guidelines
 ├── requirements.txt                    # Python dependencies
 ├── .gitignore                          # Git ignore rules
 ├── README.md                           # This file
@@ -253,6 +275,7 @@ tiktok-prediction-system/
 ## 🤖 Model Information
 
 ### Model Specifications
+
 - **Type**: RandomForestClassifier
 - **Algorithm**: Ensemble learning (bagging)
 - **Number of Trees**: 100
@@ -263,44 +286,53 @@ tiktok-prediction-system/
 ### Features (22 total)
 
 #### Engagement Metrics (3)
+
 1. **Suka** - Number of likes
 2. **Komentar** - Number of comments
 3. **Dibagikan** - Number of shares
 
 #### Video Properties (4)
+
 4. **Durasi_Video** - Video duration in seconds
 5. **Jumlah_Hashtag** - Number of hashtags
 6. **Panjang_Caption** - Caption length
 7. **Format_Konten_Video** - Video format (vertical/horizontal/square)
 
 #### Temporal Features (3)
+
 8. **Hari_Upload** - Upload day (0=Monday, 6=Sunday)
 9. **Jam_Upload** - Upload hour (0-23)
 10. **Jam_Sejak_Publikasi** - Hours since publish
 
 #### Trend Strength (2)
+
 11. **Kekuatan_Tren_Audio** - Audio trend strength (0-1)
 12. **Kekuatan_Tren_Hashtag** - Hashtag trend strength (0-1)
 
 #### Collaboration (1)
+
 13. **Apakah_Kolaborasi** - Is collaboration (0/1)
 
 #### Content Type (One-hot encoded, 4)
+
 14. **Tipe_Konten_Lainnya**
 15. **Tipe_Konten_OOTD**
 16. **Tipe_Konten_Tutorial**
 17. **Tipe_Konten_Vlog**
 
 #### Audio Type (One-hot encoded, 3)
+
 18. **Tipe_Audio_Audio Lainnya**
 19. **Tipe_Audio_Audio Original**
 20. **Tipe_Audio_Audio Populer**
 
 #### Interaction Features (2)
+
 21. **Interaksi_Tutorial_x_Komentar** - Tutorial × Comments
 22. **Interaksi_OOTD_x_Dibagikan** - OOTD × Shares
 
 ### Feature Importance (Top 5)
+
 1. **Dibagikan** (Shares): 32.94%
 2. **Suka** (Likes): 30.68%
 3. **Komentar** (Comments): 16.86%
@@ -312,12 +344,14 @@ tiktok-prediction-system/
 ## 📊 Dataset Information
 
 ### Source
+
 - **Origin**: TikTok Analytics dari akun @septianndt
 - **Collection Method**: FreeTikTokScraper
 - **Date Range**: 2023-2024
 - **File**: `dataset_tiktok.csv`
 
 ### Statistics
+
 - **Total Records**: 159 videos
 - **Total Columns**: 13 (raw) + enriched features
 - **Total Views**: 6,393,014
@@ -325,6 +359,7 @@ tiktok-prediction-system/
 - **Best Video Performance**: 1,100,000 views
 
 ### Raw Columns
+
 1. `authorMeta.avatar` - Creator avatar URL
 2. `authorMeta.name` - Creator name (@septianndt)
 3. `text` - Video caption/description
@@ -340,6 +375,7 @@ tiktok-prediction-system/
 13. `webVideoUrl` - TikTok video URL
 
 ### Key Insights
+
 - **Best Day to Post**: Tuesday
 - **Best Content Type**: Varies by analysis period
 - **Avg Duration**: 30 seconds
@@ -350,21 +386,25 @@ tiktok-prediction-system/
 ## 📸 Screenshots
 
 ### 1. Home Page
+
 - Welcome message and overview
 - Quick statistics cards
 - Navigation to all features
 
 ### 2. Analytics Dashboard
+
 - Comprehensive performance analytics
 - Multiple visualizations (10+ charts)
 - Interactive filters and drill-downs
 
 ### 3. Single Prediction
+
 - Interactive form with 22 features
 - Real-time prediction results
 - Confidence scores and recommendations
 
 ### 4. Batch Prediction
+
 - CSV upload interface
 - Bulk prediction processing
 - Comparison analysis and export
@@ -376,10 +416,12 @@ tiktok-prediction-system/
 ### Option 1: Streamlit Cloud (Recommended)
 
 #### Prerequisites
+
 - GitHub account
 - Repository pushed to GitHub
 
 #### Steps
+
 1. Go to [share.streamlit.io](https://share.streamlit.io)
 2. Sign in with GitHub
 3. Click "New app"
@@ -388,7 +430,9 @@ tiktok-prediction-system/
 6. Click "Deploy"
 
 #### Configuration
+
 No additional configuration needed. The app will automatically:
+
 - Install dependencies from `requirements.txt`
 - Use `.streamlit/config.toml` for theme
 - Run on Streamlit Cloud servers
@@ -396,11 +440,13 @@ No additional configuration needed. The app will automatically:
 ### Option 2: Local Server
 
 #### For Development
+
 ```bash
 streamlit run app.py
 ```
 
 #### For Production (with PM2)
+
 ```bash
 # Install PM2
 npm install -g pm2
@@ -416,6 +462,7 @@ pm2 startup
 ### Option 3: Docker (Advanced)
 
 #### Create Dockerfile
+
 ```dockerfile
 FROM python:3.9-slim
 
@@ -432,6 +479,7 @@ CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0
 ```
 
 #### Build and Run
+
 ```bash
 docker build -t tiktok-prediction .
 docker run -p 8501:8501 tiktok-prediction
@@ -444,31 +492,39 @@ docker run -p 8501:8501 tiktok-prediction
 ### Common Issues
 
 #### 1. **ModuleNotFoundError**
+
 ```bash
 # Solution: Install dependencies
 pip install -r requirements.txt
 ```
 
 #### 2. **Port Already in Use**
+
 ```bash
 # Solution: Use different port
 streamlit run app.py --server.port 8502
 ```
 
 #### 3. **Model Loading Warning**
+
 ```
 InconsistentVersionWarning: Trying to unpickle estimator from version X when using version Y
 ```
+
 **Solution**: This is a warning, not an error. The model will still work. To eliminate:
+
 ```bash
 pip install scikit-learn==1.6.1
 ```
 
 #### 4. **CSV Upload Error**
+
 **Solution**: Ensure CSV has all 22 required columns. Download template from Batch Prediction page.
 
 #### 5. **Charts Not Displaying**
+
 **Solution**: Clear Streamlit cache
+
 ```bash
 # In the app, press 'C' then 'Clear cache'
 # Or restart the app
@@ -477,10 +533,12 @@ pip install scikit-learn==1.6.1
 ### Performance Issues
 
 #### Slow Loading
+
 - **Cause**: Large dataset or slow connection
 - **Solution**: Data is cached after first load. Subsequent loads will be faster.
 
 #### Memory Issues
+
 - **Cause**: Running batch prediction on very large CSV (>10,000 rows)
 - **Solution**: Split CSV into smaller batches
 
@@ -489,12 +547,14 @@ pip install scikit-learn==1.6.1
 ## 🤝 Contributing
 
 This is an academic project. Contributions are welcome for:
+
 - Bug fixes
 - Performance improvements
 - UI/UX enhancements
 - Documentation updates
 
 ### How to Contribute
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/improvement`)
 3. Commit your changes (`git commit -am 'Add new feature'`)
@@ -516,12 +576,14 @@ For educational and non-commercial use only.
 ## 👤 Kontak
 
 ### Project Information
+
 - **Developer**: [Your Name]
 - **Institution**: UPN Veteran Jakarta
 - **Faculty**: Ilmu Komputer
 - **Program**: S1 Sistem Informasi
 
 ### Support
+
 - **Issues**: [GitHub Issues](your-repo/issues)
 - **Email**: your-email@example.com
 - **LinkedIn**: [Your Profile]
@@ -531,14 +593,17 @@ For educational and non-commercial use only.
 ## 🙏 Acknowledgments
 
 ### Data & Content
+
 - Content Creator: **@septianndt**
 - Data Source: FreeTikTokScraper
 
 ### References
+
 - Meiza Alliansa (2025) - Random Forest Implementation Reference
 - UPN Veteran Jakarta - Academic Support
 
 ### Tools & Technologies
+
 - Streamlit - Web framework
 - Anthropic Claude - Development assistance via Claude Code
 - scikit-learn - Machine learning library
@@ -548,12 +613,13 @@ For educational and non-commercial use only.
 ## 📚 Additional Documentation
 
 ### For Developers
-- [CLAUDE.md](.claude/CLAUDE.md) - Complete project context and development phases
+
 - [PHASE_COMPLETION_SUMMARY.md](PHASE_COMPLETION_SUMMARY.md) - Development progress
-- [SKILL_INDONESIAN_UI.md](.claude/Skills/SKILL_INDONESIAN_UI.md) - UI language guidelines
 
 ### API Documentation
+
 All utility functions are documented with docstrings. Use Python's `help()` function:
+
 ```python
 from utils.model_handler import ModelHandler
 help(ModelHandler)
@@ -564,12 +630,14 @@ help(ModelHandler)
 ## 🎯 Roadmap
 
 ### Version 1.0 (Current)
+
 - ✅ Analytics Dashboard
 - ✅ Single Prediction
 - ✅ Batch Prediction
 - ✅ Export functionality
 
 ### Future Enhancements
+
 - 🚧 Real-time TikTok API integration
 - 🚧 Advanced visualization options
 - 🚧 Model retraining interface
