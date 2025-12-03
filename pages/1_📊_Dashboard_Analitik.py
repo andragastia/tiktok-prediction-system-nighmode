@@ -50,23 +50,62 @@ st.success("✅ Data berhasil dimuat!")
 # Sidebar filters
 st.sidebar.header("🔧 Filter Data")
 
-# Date range filter
-date_range = st.sidebar.date_input(
-    "Rentang Tanggal",
-    value=(data['raw_data']['createTimeISO'].min(), data['raw_data']['createTimeISO'].max()),
-    key="date_range"
+# 1. Pastikan kolom tanggal bertipe datetime
+data['raw_data']['createTimeISO'] = pd.to_datetime(data['raw_data']['createTimeISO'])
+min_date = data['raw_data']['createTimeISO'].min().date()
+max_date = data['raw_data']['createTimeISO'].max().date()
+
+# 2. Pilihan Mode Filter
+filter_mode = st.sidebar.radio(
+    "Mode Filter Waktu:",
+    ["Semua Waktu", "Rentang Tanggal", "Bulan Tertentu", "Tahun Tertentu"]
 )
 
-# Apply filters
+# 3. Logika Filter
 filtered_df = data['raw_data'].copy()
-if len(date_range) == 2:
+
+if filter_mode == "Rentang Tanggal":
+    date_range = st.sidebar.date_input(
+        "Pilih Rentang Tanggal",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+        filtered_df = filtered_df[
+            (filtered_df['createTimeISO'].dt.date >= start_date) &
+            (filtered_df['createTimeISO'].dt.date <= end_date)
+        ]
+
+elif filter_mode == "Bulan Tertentu":
+    # Ambil daftar tahun dan bulan yang tersedia di data
+    available_years = sorted(filtered_df['createTimeISO'].dt.year.unique())
+    selected_year = st.sidebar.selectbox("Pilih Tahun", available_years)
+    
+    # Filter bulan berdasarkan tahun yang dipilih
+    months_in_year = filtered_df[filtered_df['createTimeISO'].dt.year == selected_year]['createTimeISO'].dt.month_name().unique()
+    # Urutkan bulan secara kronologis (bukan alfabetis)
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    sorted_months = sorted(months_in_year, key=lambda x: month_order.index(x) if x in month_order else 99)
+    
+    selected_month = st.sidebar.selectbox("Pilih Bulan", sorted_months)
+    
     filtered_df = filtered_df[
-        (filtered_df['createTimeISO'].dt.date >= date_range[0]) &
-        (filtered_df['createTimeISO'].dt.date <= date_range[1])
+        (filtered_df['createTimeISO'].dt.year == selected_year) &
+        (filtered_df['createTimeISO'].dt.month_name() == selected_month)
     ]
 
-st.markdown("---")
+elif filter_mode == "Tahun Tertentu":
+    available_years = sorted(filtered_df['createTimeISO'].dt.year.unique())
+    selected_year = st.sidebar.selectbox("Pilih Tahun", available_years)
+    
+    filtered_df = filtered_df[filtered_df['createTimeISO'].dt.year == selected_year]
 
+# Tampilkan info filter aktif
+st.sidebar.info(f"Menampilkan **{len(filtered_df)}** video")
+
+# --- (Sisa kode di bawah st.markdown("---") tetap sama) ---
 # ==================== OVERVIEW METRICS ====================
 st.header("📈 Ringkasan Performa")
 
