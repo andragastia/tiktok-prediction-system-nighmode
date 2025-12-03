@@ -102,10 +102,8 @@ elif filter_mode == "Tahun Tertentu":
     
     filtered_df = filtered_df[filtered_df['createTimeISO'].dt.year == selected_year]
 
-# Tampilkan info filter aktif
 st.sidebar.info(f"Menampilkan **{len(filtered_df)}** video")
 
-# --- (Sisa kode di bawah st.markdown("---") tetap sama) ---
 # ==================== OVERVIEW METRICS ====================
 st.header("📈 Ringkasan Performa")
 

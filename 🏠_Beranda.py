@@ -29,7 +29,7 @@ with col1:
     st.markdown("""
     Sistem ini membantu Anda menganalisis dan memprediksi performa konten TikTok menggunakan:
     - **Machine Learning**: Random Forest Classifier dengan 100 trees
-    - **Data Analytics**: Analisis mendalam dari 159 video
+    - **Data Analytics**: Analisis mendalam dari 166 video
     - **Prediksi Real-time**: Prediksi potensi trending untuk konten baru
 
     ### 🎨 Fitur Utama:
@@ -72,7 +72,7 @@ with col2:
     ---
 
     **📊 Dataset Info**
-    - Total Video: 159
+    - Total Video: 166
     - Periode: 2023-2024
     - Creator: @septianndt
     """)
