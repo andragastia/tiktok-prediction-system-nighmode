@@ -288,9 +288,6 @@ class DataProcessor:
             'Panjang_Caption': raw_features.get('caption_length', 50),
             'Hari_Upload': raw_features.get('upload_day', 0),
             'Jam_Upload': raw_features.get('upload_hour', 12),
-            'Kekuatan_Tren_Audio': raw_features.get('audio_trend_strength', 0.5),
-            'Kekuatan_Tren_Hashtag': raw_features.get('hashtag_trend_strength', 0.5),
-            'Apakah_Kolaborasi': raw_features.get('is_collaboration', 0),
             'Format_Konten_Video': raw_features.get('video_format', 1),
             'Tipe_Konten_Lainnya': 1 if raw_features.get('content_type') == 'Lainnya' else 0,
             'Tipe_Konten_OOTD': 1 if raw_features.get('content_type') == 'OOTD' else 0,
@@ -299,8 +296,6 @@ class DataProcessor:
             'Tipe_Audio_Audio Lainnya': 1 if raw_features.get('audio_type') == 'Audio Lainnya' else 0,
             'Tipe_Audio_Audio Original': 1 if raw_features.get('audio_type') == 'Audio Original' else 0,
             'Tipe_Audio_Audio Populer': 1 if raw_features.get('audio_type') == 'Audio Populer' else 0,
-            'Interaksi_Tutorial_x_Komentar': raw_features.get('comments', 0) if raw_features.get('content_type') == 'Tutorial' else 0,
-            'Interaksi_OOTD_x_Dibagikan': raw_features.get('shares', 0) if raw_features.get('content_type') == 'OOTD' else 0,
         }
 
         return pd.DataFrame([features])

@@ -35,16 +35,13 @@ class ModelHandler:
                 self.feature_names = list(self.model.feature_names_in_)
             else:
                 # Default feature names from inspection
-                self.feature_names = [
-                    'Suka', 'Komentar', 'Dibagikan', 'Durasi_Video', 'Jumlah_Hashtag',
-                    'Jam_Sejak_Publikasi', 'Panjang_Caption', 'Hari_Upload', 'Jam_Upload',
-                    'Kekuatan_Tren_Audio', 'Kekuatan_Tren_Hashtag', 'Apakah_Kolaborasi',
-                    'Format_Konten_Video', 'Tipe_Konten_Lainnya', 'Tipe_Konten_OOTD',
-                    'Tipe_Konten_Tutorial', 'Tipe_Konten_Vlog', 'Tipe_Audio_Audio Lainnya',
-                    'Tipe_Audio_Audio Original', 'Tipe_Audio_Audio Populer',
-                    'Interaksi_Tutorial_x_Komentar', 'Interaksi_OOTD_x_Dibagikan'
-                ]
-
+            self.feature_names = [
+                'Suka', 'Komentar', 'Dibagikan', 'Durasi_Video', 'Jumlah_Hashtag',
+                'Jam_Sejak_Publikasi', 'Panjang_Caption', 'Hari_Upload', 'Jam_Upload',
+                'Format_Konten_Video', 'Tipe_Konten_Lainnya', 'Tipe_Konten_OOTD',
+                'Tipe_Konten_Tutorial', 'Tipe_Konten_Vlog', 'Tipe_Audio_Audio Lainnya',
+                'Tipe_Audio_Audio Original', 'Tipe_Audio_Audio Populer'
+            ]
             return True
         except Exception as e:
             print(f"Error loading model: {str(e)}")
