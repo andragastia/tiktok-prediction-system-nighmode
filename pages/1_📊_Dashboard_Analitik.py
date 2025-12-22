@@ -189,51 +189,73 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📅 Performa per Hari")
 
-    # Prepare data for day performance
+    # Persiapan Data
     day_perf = data['perf_by_day'].reset_index()
+    
+    # REVISI: Ganti nama kolom agar enak dibaca di grafik
+    day_perf = day_perf.rename(columns={
+        'upload_day': 'Hari Upload',
+        'playCount': 'Rata-rata Tayangan'
+    })
+
+    # Plotting dengan nama kolom baru
     fig_day = create_bar_chart(
         day_perf,
-        x='upload_day',
-        y='playCount',
+        x='Hari Upload',           # Sesuai nama kolom baru
+        y='Rata-rata Tayangan',    # Sesuai nama kolom baru
         title="Rata-rata Tayangan per Hari dalam Seminggu",
         xaxis_title="Hari",
         yaxis_title="Rata-rata Tayangan"
     )
     st.plotly_chart(fig_day, use_container_width=True)
 
-    # Best day insight
-    best_day = day_perf.loc[day_perf['playCount'].idxmax(), 'upload_day']
-    best_day_views = day_perf['playCount'].max()
+    # Insight (Perlu penyesuaian sedikit karena nama kolom berubah)
+    best_day = day_perf.loc[day_perf['Rata-rata Tayangan'].idxmax(), 'Hari Upload']
+    best_day_views = day_perf['Rata-rata Tayangan'].max()
     st.info(f"📌 **Hari Terbaik**: {best_day} dengan rata-rata {format_number(best_day_views)} tayangan")
 
 with col2:
     st.subheader("🕐 Performa per Jam")
 
-    # Prepare data for hour performance
+    # Persiapan Data
     hour_perf = data['perf_by_hour'].reset_index()
+    
+    # REVISI: Ganti nama kolom
+    hour_perf = hour_perf.rename(columns={
+        'upload_hour': 'Jam Upload',
+        'playCount': 'Rata-rata Tayangan'
+    })
+
     fig_hour = create_line_chart(
         hour_perf,
-        x='upload_hour',
-        y='playCount',
+        x='Jam Upload',
+        y='Rata-rata Tayangan',
         title="Rata-rata Tayangan per Jam Upload",
-        xaxis_title="Jam (24H)",
+        xaxis_title="Jam (Format 24 Jam)",
         yaxis_title="Rata-rata Tayangan"
     )
     st.plotly_chart(fig_hour, use_container_width=True)
 
-    # Best hour insight
-    best_hour = hour_perf.loc[hour_perf['playCount'].idxmax(), 'upload_hour']
-    best_hour_views = hour_perf['playCount'].max()
-    st.info(f"📌 **Jam Terbaik**: {best_hour}:00 dengan rata-rata {format_number(best_hour_views)} tayangan")
+    # Insight
+    best_hour = hour_perf.loc[hour_perf['Rata-rata Tayangan'].idxmax(), 'Jam Upload']
+    best_hour_views = hour_perf['Rata-rata Tayangan'].max()
+    st.info(f"📌 **Jam Terbaik**: Pukul {best_hour}:00 dengan rata-rata {format_number(best_hour_views)} tayangan")
 
 # Time series view
 st.subheader("📈 Tren Tayangan Sepanjang Waktu")
 time_series_df = filtered_df.sort_values('createTimeISO')[['createTimeISO', 'playCount']]
+
+# REVISI: Ganti nama kolom untuk Time Series
+time_series_df = time_series_df.rename(columns={
+    'createTimeISO': 'Tanggal Upload',
+    'playCount': 'Jumlah Tayangan'
+})
+
 fig_timeline = create_time_series_chart(
     time_series_df,
-    date_col='createTimeISO',
-    value_col='playCount',
-    title="Tayangan Video Sepanjang Waktu",
+    date_col='Tanggal Upload',
+    value_col='Jumlah Tayangan',
+    title="Tren Performa Video Sepanjang Waktu",
     yaxis_title="Jumlah Tayangan"
 )
 st.plotly_chart(fig_timeline, use_container_width=True)
@@ -245,45 +267,69 @@ st.header("🎨 Analisis Tipe Konten")
 
 col1, col2 = st.columns(2)
 
+# Persiapan Data Konten
+content_dist = data['content_type_perf'].reset_index()
+# REVISI: Ganti nama kolom
+content_dist = content_dist.rename(columns={
+    'content_type': 'Tipe Konten',
+    'video_count': 'Jumlah Video',
+    'playCount_mean': 'Rata-rata Tayangan'
+})
+
 with col1:
     st.subheader("📊 Distribusi Tipe Konten")
-
-    # Content type distribution
-    content_dist = data['content_type_perf'].reset_index()
     fig_content_pie = create_pie_chart(
-        values=content_dist['video_count'],
-        names=content_dist['content_type'],
-        title="Distribusi Tipe Konten",
+        values=content_dist['Jumlah Video'],
+        names=content_dist['Tipe Konten'],
+        title="Proporsi Jumlah Video per Tipe",
         hole=0.4
     )
     st.plotly_chart(fig_content_pie, use_container_width=True)
 
 with col2:
     st.subheader("⭐ Performa per Tipe Konten")
-
-    # Content type performance
     fig_content_bar = create_bar_chart(
         content_dist,
-        x='content_type',
-        y='playCount_mean',
+        x='Tipe Konten',
+        y='Rata-rata Tayangan',
         title="Rata-rata Tayangan per Tipe Konten",
-        xaxis_title="Tipe Konten",
+        xaxis_title="Kategori Konten",
         yaxis_title="Rata-rata Tayangan"
     )
     st.plotly_chart(fig_content_bar, use_container_width=True)
 
-# Best content type insight
-best_content = content_dist.loc[content_dist['playCount_mean'].idxmax(), 'content_type']
-best_content_views = content_dist['playCount_mean'].max()
-st.info(f"📌 **Tipe Konten Terbaik**: {best_content} dengan rata-rata {format_number(best_content_views)} tayangan")
+# Insight
+best_content = content_dist.loc[content_dist['Rata-rata Tayangan'].idxmax(), 'Tipe Konten']
+best_content_views = content_dist['Rata-rata Tayangan'].max()
+st.info(f"📌 **Tipe Konten Juara**: {best_content} (Avg. {format_number(best_content_views)} tayangan)")
 
 # Detailed content type table
 st.subheader("📋 Detail Performa Tipe Konten")
-content_table = content_dist[['content_type', 'video_count', 'playCount_mean', 'diggCount_mean', 'commentCount_mean']].copy()
-content_table.columns = ['Tipe Konten', 'Jumlah Video', 'Avg. Tayangan', 'Avg. Suka', 'Avg. Komentar']
+
+# REVISI: Menggunakan nama kolom yang sudah diubah ke Bahasa Indonesia
+# Kolom 'diggCount_mean' dan 'commentCount_mean' belum diubah di atas, jadi masih pakai nama asli
+content_table = content_dist[[
+    'Tipe Konten', 
+    'Jumlah Video', 
+    'Rata-rata Tayangan', 
+    'diggCount_mean', 
+    'commentCount_mean'
+]].copy()
+
+# Merapikan nama kolom untuk tampilan akhir tabel
+content_table.columns = [
+    'Tipe Konten', 
+    'Jumlah Video', 
+    'Avg. Tayangan', 
+    'Avg. Suka', 
+    'Avg. Komentar'
+]
+
+# Format angka agar ada pemisah ribuan (koma)
 content_table['Avg. Tayangan'] = content_table['Avg. Tayangan'].apply(lambda x: f"{x:,.0f}")
 content_table['Avg. Suka'] = content_table['Avg. Suka'].apply(lambda x: f"{x:,.0f}")
 content_table['Avg. Komentar'] = content_table['Avg. Komentar'].apply(lambda x: f"{x:,.0f}")
+
 st.dataframe(content_table, use_container_width=True, hide_index=True)
 
 st.markdown("---")
@@ -293,37 +339,41 @@ st.header("🎵 Analisis Tipe Audio")
 
 col1, col2 = st.columns(2)
 
-with col1:
-    st.subheader("📊 Distribusi Tipe Audio")
+# Persiapan Data Audio
+audio_dist = data['audio_type_perf'].reset_index()
+# REVISI: Ganti nama kolom
+audio_dist = audio_dist.rename(columns={
+    'audio_type': 'Jenis Audio',
+    'video_count': 'Jumlah Video',
+    'playCount_mean': 'Rata-rata Tayangan'
+})
 
-    # Audio type distribution
-    audio_dist = data['audio_type_perf'].reset_index()
+with col1:
+    st.subheader("📊 Distribusi Penggunaan Audio")
     fig_audio_pie = create_pie_chart(
-        values=audio_dist['video_count'],
-        names=audio_dist['audio_type'],
-        title="Distribusi Tipe Audio",
+        values=audio_dist['Jumlah Video'],
+        names=audio_dist['Jenis Audio'],
+        title="Proporsi Penggunaan Jenis Audio",
         hole=0.4
     )
     st.plotly_chart(fig_audio_pie, use_container_width=True)
 
 with col2:
-    st.subheader("⭐ Performa per Tipe Audio")
-
-    # Audio type performance
+    st.subheader("⭐ Performa per Jenis Audio")
     fig_audio_bar = create_bar_chart(
         audio_dist,
-        x='audio_type',
-        y='playCount_mean',
-        title="Rata-rata Tayangan per Tipe Audio",
-        xaxis_title="Tipe Audio",
+        x='Jenis Audio',
+        y='Rata-rata Tayangan',
+        title="Efektivitas Jenis Audio terhadap Tayangan",
+        xaxis_title="Jenis Audio",
         yaxis_title="Rata-rata Tayangan"
     )
     st.plotly_chart(fig_audio_bar, use_container_width=True)
 
-# Best audio type insight
-best_audio = audio_dist.loc[audio_dist['playCount_mean'].idxmax(), 'audio_type']
-best_audio_views = audio_dist['playCount_mean'].max()
-st.info(f"📌 **Tipe Audio Terbaik**: {best_audio} dengan rata-rata {format_number(best_audio_views)} tayangan")
+# Insight
+best_audio = audio_dist.loc[audio_dist['Rata-rata Tayangan'].idxmax(), 'Jenis Audio']
+best_audio_views = audio_dist['Rata-rata Tayangan'].max()
+st.info(f"📌 **Audio Paling Efektif**: {best_audio} (Avg. {format_number(best_audio_views)} tayangan)")
 
 st.markdown("---")
 
@@ -373,42 +423,53 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📊 Korelasi Metrik")
 
-    # Correlation heatmap
+    # REVISI: Ganti nama kolom/baris pada Matrix Korelasi
+    # Mapping nama lama (teknis) ke nama baru (Indonesia)
+    rename_map = {
+        'playCount': 'Tayangan',
+        'diggCount': 'Suka',
+        'commentCount': 'Komentar',
+        'shareCount': 'Dibagikan',
+        'videoMeta.duration': 'Durasi',
+        'engagement_rate': 'Engagement'
+    }
+    
+    # Copy data korelasi dan rename index serta kolomnya
+    corr_data = data['correlation'].copy()
+    corr_data = corr_data.rename(columns=rename_map, index=rename_map)
+
+    # Plot Heatmap dengan label baru
     fig_corr = create_correlation_heatmap(
-        data['correlation'],
-        title="Matriks Korelasi Metrik Performa"
+        corr_data,
+        title="Matriks Hubungan Antar Metrik"
     )
     st.plotly_chart(fig_corr, use_container_width=True)
 
 with col2:
     st.subheader("📈 Distribusi Engagement Rate")
 
-    # Engagement rate histogram
+    # REVISI: Persiapan data Histogram
+    hist_df = filtered_df.copy().rename(columns={
+        'engagement_rate': 'Engagement Rate (%)'
+    })
+
+    # Plot Histogram
     fig_engagement_hist = create_histogram(
-        filtered_df,
-        x='engagement_rate',
-        title="Distribusi Engagement Rate",
+        hist_df,
+        x='Engagement Rate (%)',
+        title="Sebaran Tingkat Interaksi (Engagement)",
         xaxis_title="Engagement Rate (%)",
         nbins=30
     )
     st.plotly_chart(fig_engagement_hist, use_container_width=True)
 
-    # Engagement stats
-    st.metric("Median Engagement", f"{filtered_df['engagement_rate'].median():.2f}%")
-    st.metric("Max Engagement", f"{filtered_df['engagement_rate'].max():.2f}%")
+    # Statistik Engagement
+    median_eng = filtered_df['engagement_rate'].median()
+    max_eng = filtered_df['engagement_rate'].max()
+    
+    st.metric("Median Engagement", f"{median_eng:.2f}%")
+    st.metric("Rekor Engagement Tertinggi", f"{max_eng:.2f}%")
 
-# Scatter plot: Views vs Likes
-st.subheader("🎯 Tayangan vs Suka")
-fig_scatter = create_scatter_plot(
-    filtered_df,
-    x='playCount',
-    y='diggCount',
-    title="Hubungan antara Tayangan dan Suka",
-    xaxis_title="Jumlah Tayangan",
-    yaxis_title="Jumlah Suka",
-    size='engagement_rate'
-)
-st.plotly_chart(fig_scatter, use_container_width=True)
 
 st.markdown("---")
 
