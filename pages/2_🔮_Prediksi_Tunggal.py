@@ -295,23 +295,48 @@ if submitted:
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        # Get feature importance from model
-        feature_imp = model_handler.get_feature_importance()
+            # Get feature importance from model
+            feature_imp = model_handler.get_feature_importance()
 
-        if feature_imp is not None:
-            # Display top 10 features
-            top_features = feature_imp.head(10)
+            if feature_imp is not None:
+                # Display top 10 features
+                top_features = feature_imp.head(10).copy() 
+               
+                rename_fitur = {
+                    'Suka': 'Jumlah Suka',
+                    'Komentar': 'Jumlah Komentar',
+                    'Dibagikan': 'Jumlah Dibagikan',
+                    'Durasi_Video': 'Durasi Video',
+                    'Jumlah_Hashtag': 'Jumlah Hashtag',
+                    'Jam_Sejak_Publikasi': 'Jam Sejak Publikasi',
+                    'Panjang_Caption': 'Panjang Caption',
+                    'Hari_Upload': 'Hari Upload',
+                    'Jam_Upload': 'Jam Upload',
+                    'Format_Konten_Video': 'Format Video',
+                    'Tipe_Konten_Lainnya': 'Tipe Konten: Lainnya',
+                    'Tipe_Konten_OOTD': 'Tipe Konten: OOTD',
+                    'Tipe_Konten_Tutorial': 'Tipe Konten: Tutorial',
+                    'Tipe_Konten_Vlog': 'Tipe Konten: Vlog',
+                    'Tipe_Audio_Audio Lainnya': 'Audio: Lainnya',
+                    'Tipe_Audio_Audio Original': 'Audio: Original',
+                    'Tipe_Audio_Audio Populer': 'Audio: Populer'
+                }
 
-            fig_importance = create_bar_chart(
-                top_features,
-                x='feature',
-                y='importance',
-                title="10 Fitur Paling Berpengaruh dalam Prediksi",
-                xaxis_title="Fitur",
-                yaxis_title="Importance Score",
-                orientation='h'
-            )
-            st.plotly_chart(fig_importance, use_container_width=True)
+                # Mengganti isi kolom 'feature' menggunakan kamus di atas
+                # Jika ada fitur yang tidak ada di kamus, dia akan tetap pakai nama aslinya
+                top_features['feature'] = top_features['feature'].map(rename_fitur).fillna(top_features['feature'])
+                # ========================================================
+
+                fig_importance = create_bar_chart(
+                    top_features,
+                    x='feature',
+                    y='importance',
+                    title="10 Faktor Penentu Utama",
+                    xaxis_title="Faktor",
+                    yaxis_title="Tingkat Pengaruh",
+                    orientation='h'
+                )
+                st.plotly_chart(fig_importance, use_container_width=True)
 
     with col2:
         st.markdown("**Insight:**")
