@@ -322,8 +322,6 @@ if submitted:
                     'Tipe_Audio_Audio Populer': 'Audio: Populer'
                 }
 
-                # Mengganti isi kolom 'feature' menggunakan kamus di atas
-                # Jika ada fitur yang tidak ada di kamus, dia akan tetap pakai nama aslinya
                 top_features['feature'] = top_features['feature'].map(rename_fitur).fillna(top_features['feature'])
                 # ========================================================
 

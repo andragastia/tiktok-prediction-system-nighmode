@@ -192,7 +192,6 @@ with col1:
     # Persiapan Data
     day_perf = data['perf_by_day'].reset_index()
     
-    # REVISI: Ganti nama kolom agar enak dibaca di grafik
     day_perf = day_perf.rename(columns={
         'upload_day': 'Hari Upload',
         'playCount': 'Rata-rata Tayangan'
@@ -220,7 +219,6 @@ with col2:
     # Persiapan Data
     hour_perf = data['perf_by_hour'].reset_index()
     
-    # REVISI: Ganti nama kolom
     hour_perf = hour_perf.rename(columns={
         'upload_hour': 'Jam Upload',
         'playCount': 'Rata-rata Tayangan'
@@ -269,7 +267,7 @@ col1, col2 = st.columns(2)
 
 # Persiapan Data Konten
 content_dist = data['content_type_perf'].reset_index()
-# REVISI: Ganti nama kolom
+
 content_dist = content_dist.rename(columns={
     'content_type': 'Tipe Konten',
     'video_count': 'Jumlah Video',
@@ -306,7 +304,6 @@ st.info(f"📌 **Tipe Konten Juara**: {best_content} (Avg. {format_number(best_c
 # Detailed content type table
 st.subheader("📋 Detail Performa Tipe Konten")
 
-# REVISI: Menggunakan nama kolom yang sudah diubah ke Bahasa Indonesia
 # Kolom 'diggCount_mean' dan 'commentCount_mean' belum diubah di atas, jadi masih pakai nama asli
 content_table = content_dist[[
     'Tipe Konten', 
@@ -341,7 +338,6 @@ col1, col2 = st.columns(2)
 
 # Persiapan Data Audio
 audio_dist = data['audio_type_perf'].reset_index()
-# REVISI: Ganti nama kolom
 audio_dist = audio_dist.rename(columns={
     'audio_type': 'Jenis Audio',
     'video_count': 'Jumlah Video',
@@ -423,8 +419,6 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📊 Korelasi Metrik")
 
-    # REVISI: Ganti nama kolom/baris pada Matrix Korelasi
-    # Mapping nama lama (teknis) ke nama baru (Indonesia)
     rename_map = {
         'playCount': 'Tayangan',
         'diggCount': 'Suka',
