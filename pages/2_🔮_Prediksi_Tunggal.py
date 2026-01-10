@@ -1,6 +1,7 @@
 """
 Single Prediction Page
 Interactive form for predicting individual video performance
+(Updated: Hybrid Input System with Detailed Analytics Flow)
 """
 import streamlit as st
 import pandas as pd
@@ -22,7 +23,6 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # Header
 st.title("🔮 Prediksi Performa Video Tunggal")
 st.markdown("Prediksi apakah konten Anda berpotensi **Trending** atau **Tidak Trending**")
@@ -37,6 +37,7 @@ def load_model():
 def load_reference_data():
     """Load reference statistics"""
     dp = get_data_processor()
+    dp.load_data() # Force load terbaru
     return {
         'avg_likes': dp.df['diggCount'].mean(),
         'avg_comments': dp.df['commentCount'].mean(),
@@ -50,20 +51,20 @@ ref_data = load_reference_data()
 
 st.markdown("---")
 
-# Information section
-with st.expander("ℹ️ Panduan Penggunaan"):
+# Information section (Updated for Hybrid Input)
+with st.expander("ℹ️ Panduan Penggunaan (Mode Hibrida)"):
     st.markdown("""
     ### Cara Menggunakan:
 
-    1. **Isi semua field** pada form di bawah dengan informasi video Anda
-    2. **Klik tombol "🔮 Prediksi Sekarang"** untuk mendapatkan hasil
-    3. **Lihat hasil prediksi** beserta confidence score
-    4. **Baca rekomendasi** untuk optimasi konten
+    1. **Identitas Konten (Pilih Salah Satu):**
+       - **Opsi A (Cepat):** Pilih Kategori Manual jika belum ada caption.
+       - **Opsi B (Akurat):** Tulis Caption/Deskripsi. Sistem akan otomatis mendeteksi kategori konten (Gaming, Fashion, dll).
+    2. **Isi Metrik Estimasi:** Masukkan target likes, komentar, dll.
+    3. **Klik "🔮 Prediksi Sekarang"** untuk melihat hasil analisis AI.
 
     ### Tips:
     - Gunakan data dari video serupa sebagai referensi
     - Nilai rata-rata ditampilkan sebagai panduan
-    - Semua field wajib diisi untuk prediksi akurat
     """)
 
 st.markdown("---")
@@ -72,6 +73,31 @@ st.markdown("---")
 st.header("📝 Masukkan Informasi Video")
 
 with st.form("prediction_form"):
+    
+    # --- [BAGIAN BARU] INPUT HYBRID ---
+    st.subheader("✍️ Identitas Konten")
+    st.markdown("Isi **Caption** untuk deteksi otomatis, ATAU pilih **Kategori Manual** jika caption belum siap.")
+    
+    col_input_1, col_input_2 = st.columns(2)
+    
+    with col_input_1:
+        text_content = st.text_area(
+            "Caption / Deskripsi Video (Disarankan)",
+            placeholder="Contoh: Tutorial coding python pemula... #coding #belajar",
+            help="Sistem menggunakan NLP untuk membaca konteks dari teks ini."
+        )
+        
+    with col_input_2:
+        # Kita ubah labelnya agar jelas ini opsi manual
+        content_type_manual = st.selectbox(
+            "Kategori Manual (Opsi Fallback)",
+            options=["OOTD", "Tutorial", "Vlog", "Gaming", "Fashion", "Kuliner", "Lainnya"],
+            help="Pilih ini hanya jika Caption dikosongkan."
+        )
+
+    st.markdown("---")
+    
+    # --- BAGIAN LAMA (METRIK & DETAIL) ---
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -104,7 +130,7 @@ with st.form("prediction_form"):
         duration = st.number_input(
             "Durasi Video (detik)",
             min_value=1,
-            max_value=180,
+            max_value=300, # Diperluas sedikit
             value=int(ref_data['avg_duration']),
             help=f"Rata-rata: {ref_data['avg_duration']:.0f} detik"
         )
@@ -117,12 +143,14 @@ with st.form("prediction_form"):
             help="Jumlah hashtag dalam caption"
         )
 
-        caption_length = st.number_input(
-            "Panjang Caption",
+        # Caption length dihitung otomatis jika text_content ada, tapi kita biarkan input manual
+        # sebagai override atau jika text_content kosong.
+        caption_length_manual = st.number_input(
+            "Panjang Caption (Karakter)",
             min_value=0,
-            max_value=500,
+            max_value=2200,
             value=50,
-            help="Jumlah karakter dalam caption"
+            help="Estimasi panjang karakter caption"
         )
 
         hours_since_publish = st.number_input(
@@ -134,13 +162,7 @@ with st.form("prediction_form"):
         )
 
     with col3:
-        st.subheader("🎨 Kategori Konten")
-
-        content_type = st.selectbox(
-            "Tipe Konten",
-            options=["OOTD", "Tutorial", "Vlog", "Lainnya"],
-            help="Pilih kategori konten yang paling sesuai"
-        )
+        st.subheader("⚙️ Atribut Teknis")
 
         audio_type = st.selectbox(
             "Tipe Audio",
@@ -148,10 +170,12 @@ with st.form("prediction_form"):
             help="Jenis audio yang digunakan"
         )
 
+        # Update: Bahasa Indonesia
+        days_indo = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
         upload_day = st.selectbox(
             "Hari Upload",
-            options=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            index=1,  # Default to Tuesday (best day)
+            options=days_indo,
+            index=1,  # Default Selasa
             help="Hari dalam seminggu untuk upload"
         )
 
@@ -209,51 +233,76 @@ with st.form("prediction_form"):
 if submitted:
     st.markdown("---")
 
-    with st.spinner("Memproses prediksi..."):
-        # Map day to number
-        day_mapping = {
-            "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3,
-            "Friday": 4, "Saturday": 5, "Sunday": 6
-        }
+    with st.spinner("Sedang memproses data dan algoritma NLP..."):
+        
+        # 1. LOGIKA HYBRID (Caption vs Manual)
+        final_text_input = ""
+        detection_source = ""
+        final_caption_len = caption_length_manual
+        
+        if text_content.strip():
+            # User isi caption -> Prioritas NLP
+            final_text_input = text_content
+            final_caption_len = len(text_content)
+            detection_source = "Otomatis (NLP dari Caption)"
+        else:
+            # User kosong -> Pakai Manual (Inject Dummy Keyword agar DataProcessor bekerja)
+            keyword_map = {
+                "Gaming": "game genshin impact", "Fashion": "ootd outfit baju",
+                "Vlog": "vlog daily life", "Tutorial": "tutorial cara tips",
+                "Kuliner": "makan masak enak", "Beauty": "skincare makeup",
+                "Lainnya": "video tiktok general"
+            }
+            # Ambil keyword berdasarkan pilihan manual, default ke 'video'
+            final_text_input = keyword_map.get(content_type_manual, "video")
+            detection_source = f"Manual (Kategori: {content_type_manual})"
 
+        # 2. DATA PREPARATION (Menggunakan DataProcessor)
+        # Kita siapkan dictionary mentah, biarkan dp.prepare_features_for_prediction yang memetakan
+        
+        # Map day to number
+        day_mapping = {d: i for i, d in enumerate(days_indo)}
+        
         # Map video format
         format_mapping = {
-            "Vertikal (9:16)": 1,
-            "Horizontal (16:9)": 2,
-            "Persegi (1:1)": 3
+            "Vertikal (9:16)": 1, "Horizontal (16:9)": 2, "Persegi (1:1)": 3
+        }
+        
+        raw_input_data = {
+            'likes': likes,
+            'comments': comments,
+            'shares': shares,
+            'duration': duration,
+            'hashtag_count': hashtag_count,
+            'caption_length': final_caption_len,
+            'text_content': final_text_input, # KUNCI UTAMA DETEKSI
+            'hours_since_publish': hours_since_publish,
+            'upload_day': day_mapping.get(upload_day, 0),
+            'upload_hour': upload_hour,
+            'audio_type': audio_type,
+            'is_collaboration': 1 if is_collaboration else 0,
+            'video_format': format_mapping.get(video_format, 1),
+            'audio_trend_strength': audio_trend,
+            'hashtag_trend_strength': hashtag_trend
         }
 
-        # Prepare features for model
-        features = {
-            'Suka': likes,
-            'Komentar': comments,
-            'Dibagikan': shares,
-            'Durasi_Video': duration,
-            'Jumlah_Hashtag': hashtag_count,
-            'Jam_Sejak_Publikasi': hours_since_publish,
-            'Panjang_Caption': caption_length,
-            'Hari_Upload': day_mapping[upload_day],
-            'Jam_Upload': upload_hour,
-            'Kekuatan_Tren_Audio': audio_trend,
-            'Kekuatan_Tren_Hashtag': hashtag_trend,
-            'Apakah_Kolaborasi': 1 if is_collaboration else 0,
-            'Format_Konten_Video': format_mapping[video_format],
-            'Tipe_Konten_Lainnya': 1 if content_type == 'Lainnya' else 0,
-            'Tipe_Konten_OOTD': 1 if content_type == 'OOTD' else 0,
-            'Tipe_Konten_Tutorial': 1 if content_type == 'Tutorial' else 0,
-            'Tipe_Konten_Vlog': 1 if content_type == 'Vlog' else 0,
-            'Tipe_Audio_Audio Lainnya': 1 if audio_type == 'Audio Lainnya' else 0,
-            'Tipe_Audio_Audio Original': 1 if audio_type == 'Audio Original' else 0,
-            'Tipe_Audio_Audio Populer': 1 if audio_type == 'Audio Populer' else 0,
-            'Interaksi_Tutorial_x_Komentar': comments if content_type == 'Tutorial' else 0,
-            'Interaksi_OOTD_x_Dibagikan': shares if content_type == 'OOTD' else 0,
-        }
+        # Panggil Otak Sistem (DataProcessor)
+        dp = get_data_processor()
+        
+        # Dapatkan fitur yang sudah di-engineer (One-Hot Encoded, dll)
+        features_df = dp.prepare_features_for_prediction(raw_input_data)
+        
+        # Dapatkan kategori yang terdeteksi (untuk info display)
+        detected_category = dp._classify_content_logic(final_text_input)
 
-        # Make prediction
-        prediction, confidence, probabilities = model_handler.predict(features)
+        # 3. PREDIKSI MODEL
+        prediction, confidence, probabilities = model_handler.predict(features_df)
 
-    # Display results
+    # --- DISPLAY RESULTS (MENGGUNAKAN STRUKTUR ASLI YANG DETAIL) ---
     st.header("🎯 Hasil Prediksi")
+    
+    # Info Tambahan tentang Deteksi
+    st.info(f"ℹ️ **Info Sistem:** Kategori konten dideteksi sebagai **{detected_category}** menggunakan metode **{detection_source}**.")
 
     col1, col2 = st.columns([2, 1])
 
@@ -301,7 +350,8 @@ if submitted:
             if feature_imp is not None:
                 # Display top 10 features
                 top_features = feature_imp.head(10).copy() 
-               
+                
+                # Mapping nama fitur agar lebih user-friendly
                 rename_fitur = {
                     'Suka': 'Jumlah Suka',
                     'Komentar': 'Jumlah Komentar',
@@ -313,18 +363,17 @@ if submitted:
                     'Hari_Upload': 'Hari Upload',
                     'Jam_Upload': 'Jam Upload',
                     'Format_Konten_Video': 'Format Video',
-                    'Tipe_Konten_Lainnya': 'Tipe Konten: Lainnya',
-                    'Tipe_Konten_OOTD': 'Tipe Konten: OOTD',
-                    'Tipe_Konten_Tutorial': 'Tipe Konten: Tutorial',
-                    'Tipe_Konten_Vlog': 'Tipe Konten: Vlog',
+                    'Tipe_Konten_Lainnya': 'Kategori: Lainnya',
+                    'Tipe_Konten_OOTD': 'Kategori: OOTD',
+                    'Tipe_Konten_Tutorial': 'Kategori: Tutorial',
+                    'Tipe_Konten_Vlog': 'Kategori: Vlog',
                     'Tipe_Audio_Audio Lainnya': 'Audio: Lainnya',
                     'Tipe_Audio_Audio Original': 'Audio: Original',
                     'Tipe_Audio_Audio Populer': 'Audio: Populer'
                 }
 
                 top_features['feature'] = top_features['feature'].map(rename_fitur).fillna(top_features['feature'])
-                # ========================================================
-
+                
                 fig_importance = create_bar_chart(
                     top_features,
                     x='feature',
@@ -350,7 +399,7 @@ if submitted:
 
     st.markdown("---")
 
-    # Recommendations
+    # Recommendations (Keeping Original Detailed Logic)
     st.subheader("💡 Rekomendasi")
 
     col1, col2 = st.columns(2)
@@ -360,8 +409,8 @@ if submitted:
 
         recommendations_good = []
 
-        if upload_day == "Tuesday":
-            recommendations_good.append("✓ Upload di hari terbaik (Tuesday)")
+        if upload_day == "Selasa": # Disesuaikan ke Bahasa Indonesia
+            recommendations_good.append("✓ Upload di hari terbaik (Selasa)")
 
         if audio_type == "Audio Populer":
             recommendations_good.append("✓ Menggunakan audio populer")
@@ -386,8 +435,8 @@ if submitted:
 
         recommendations_improve = []
 
-        if upload_day != "Tuesday":
-            recommendations_improve.append("📅 Coba upload di hari Tuesday untuk performa lebih baik")
+        if upload_day != "Selasa":
+            recommendations_improve.append("📅 Coba upload di hari Selasa untuk performa lebih baik")
 
         if audio_type != "Audio Populer":
             recommendations_improve.append("🎵 Pertimbangkan menggunakan audio yang sedang trending")
@@ -428,7 +477,7 @@ if submitted:
     })
 
     comparison_data['Selisih (%)'] = ((comparison_data['Input Anda'] - comparison_data['Rata-rata']) /
-                                       comparison_data['Rata-rata'] * 100).round(1)
+                                     comparison_data['Rata-rata'] * 100).round(1)
 
     st.dataframe(
         comparison_data.style.format({
