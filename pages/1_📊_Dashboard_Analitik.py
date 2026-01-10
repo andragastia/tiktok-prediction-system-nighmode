@@ -26,16 +26,28 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- DEBUGGING MODE (Hapus nanti jika sudah fix) ---
+st.warning("⚠️ DEBUG MODE: Menampilkan 5 Data Terakhir di Database")
+try:
+    # Baca file mentah langsung untuk memastikan data ada di disk
+    df_debug = pd.read_csv('data/dataset_tiktok.csv')
+    st.dataframe(df_debug.tail(5)) # Tampilkan 5 baris terakhir
+except Exception as e:
+    st.error(f"Gagal membaca file: {e}")
+# ---------------------------------------------------
 
 # Header
 st.title("📊 Dashboard Analitik Performa Konten")
 st.markdown("Analisis mendalam tentang performa konten TikTok @septianndt")
 
 # Load data
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_all_data():
     """Load and cache all data"""
     dp = get_data_processor()
+
+    dp.load_data()
+    
     return {
         'raw_data': dp.df,
         'stats': dp.get_summary_stats(),
