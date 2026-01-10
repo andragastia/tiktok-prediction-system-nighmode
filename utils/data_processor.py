@@ -275,14 +275,14 @@ class DataProcessor:
             'playCount': 'sum',
             'diggCount': 'sum',
             'shareCount': 'sum',
-            'id': 'count', # Jumlah Video
+            'webVideoUrl': 'count', # Jumlah Video
             'engagement_rate': 'mean'
         }).reset_index()
         
         # Rename kolom agar bahasa Indonesia
         leaderboard.rename(columns={
             'authorMeta.name': 'Nama Akun',
-            'id': 'Jml Video',
+            'webVideoUrl': 'Jml Video',
             'playCount': 'Total Penayangan',
             'diggCount': 'Total Suka',
             'shareCount': 'Total Bagikan',

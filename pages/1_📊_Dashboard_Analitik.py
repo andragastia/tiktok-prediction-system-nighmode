@@ -422,10 +422,18 @@ with col1:
     st.plotly_chart(fig_corr, use_container_width=True)
 
 with col2:
-    st.subheader("📈 Distribusi Engagement Rate")
-    hist_df = filtered_df.copy().rename(columns={'engagement_rate': 'Engagement Rate (%)'})
-    fig_hist = create_histogram(hist_df, x='Engagement Rate (%)', title="Sebaran Engagement", nbins=30)
-    st.plotly_chart(fig_hist, use_container_width=True)
+        st.subheader("📈 Distribusi Engagement Rate")
+        hist_df = filtered_df.copy().rename(columns={'engagement_rate': 'Engagement Rate (%)'})
+        
+        # FIX: Tambahkan parameter 'xaxis_title' yang wajib diminta oleh fungsi
+        fig_hist = create_histogram(
+            hist_df, 
+            x='Engagement Rate (%)', 
+            title="Sebaran Engagement", 
+            xaxis_title="Persentase Engagement (%)", # <-- TAMBAHAN WAJIB INI
+            nbins=30
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
 
 st.markdown("---")
 
