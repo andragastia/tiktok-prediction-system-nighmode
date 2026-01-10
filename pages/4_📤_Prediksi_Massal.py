@@ -1,6 +1,7 @@
 """
 Batch Prediction Page
 CSV upload interface for bulk predictions
+(Updated: Added Advanced Visualizations & Feature Importance)
 """
 import streamlit as st
 import pandas as pd
@@ -24,10 +25,9 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # Header
 st.title("📤 Prediksi Massal (Batch Prediction)")
-st.markdown("Upload file CSV untuk memprediksi banyak video sekaligus")
+st.markdown("Upload file CSV untuk memprediksi potensi *Trending* banyak video sekaligus.")
 
 # Load model
 @st.cache_resource
@@ -39,453 +39,257 @@ model_handler = load_model()
 
 st.markdown("---")
 
-# Information section
+# --- PANDUAN PENGGUNAAN ---
 with st.expander("ℹ️ Panduan Penggunaan"):
     st.markdown("""
     ### Cara Menggunakan:
-
-    1. **Download template CSV** menggunakan tombol di bawah
-    2. **Isi template** dengan data video Anda
-    3. **Upload file CSV** yang sudah diisi
-    4. **Klik "Jalankan Prediksi"** untuk memproses
-    5. **Download hasil** dalam format CSV atau Excel
-
-    ### Format CSV:
-    File CSV harus memiliki kolom-kolom berikut (sesuai dengan 22 features model):
-    - `Suka`, `Komentar`, `Dibagikan`, `Durasi_Video`, `Jumlah_Hashtag`
-    - `Jam_Sejak_Publikasi`, `Panjang_Caption`, `Hari_Upload`, `Jam_Upload`
-    - `Kekuatan_Tren_Audio`, `Kekuatan_Tren_Hashtag`, `Apakah_Kolaborasi`
-    - `Format_Konten_Video`, dan kolom tipe konten/audio (one-hot encoded)
-
-    ### Kolom Opsional:
-    - `Actual`: Label aktual untuk perbandingan (0=Tidak Trending, 1=Trending)
-    - `Video_ID`: ID unik untuk identifikasi video
-    - `Caption`: Caption video untuk referensi
+    1. **Upload CSV:** Unggah file yang memiliki fitur lengkap (gunakan *Preproses Data* jika punya data mentah).
+    2. **Jalankan Prediksi:** Klik tombol untuk memproses seluruh data.
+    3. **Analisis Visual:** Lihat grafik faktor penentu dan perbandingan performa.
+    4. **Ekspor Data:** Unduh hasil prediksi dalam format Excel/CSV.
     """)
 
 st.markdown("---")
 
-# Template download
+# --- TEMPLATE DOWNLOAD ---
 st.subheader("📥 Download Template CSV")
 
-# Create template DataFrame
+# Template Data (Sesuai Model 10 Kategori)
 template_data = {
-    'Video_ID': [1, 2, 3],
-    'Caption': ['Contoh video 1', 'Contoh video 2', 'Contoh video 3'],
-    'Suka': [100, 500, 1000],
-    'Komentar': [10, 50, 100],
-    'Dibagikan': [5, 25, 50],
-    'Durasi_Video': [30, 45, 60],
-    'Jumlah_Hashtag': [3, 5, 4],
-    'Jam_Sejak_Publikasi': [24, 48, 72],
-    'Panjang_Caption': [50, 80, 100],
-    'Hari_Upload': [1, 2, 5],  # 0=Monday, 1=Tuesday, etc.
-    'Jam_Upload': [12, 15, 18],
-    'Kekuatan_Tren_Audio': [0.5, 0.7, 0.9],
-    'Kekuatan_Tren_Hashtag': [0.6, 0.8, 0.7],
-    'Apakah_Kolaborasi': [0, 0, 1],
-    'Format_Konten_Video': [1, 1, 2],  # 1=Vertical, 2=Horizontal, 3=Square
-    'Tipe_Konten_Lainnya': [0, 0, 0],
-    'Tipe_Konten_OOTD': [1, 0, 0],
-    'Tipe_Konten_Tutorial': [0, 1, 0],
-    'Tipe_Konten_Vlog': [0, 0, 1],
-    'Tipe_Audio_Audio Lainnya': [0, 0, 0],
-    'Tipe_Audio_Audio Original': [1, 0, 0],
-    'Tipe_Audio_Audio Populer': [0, 1, 1],
-    'Interaksi_Tutorial_x_Komentar': [0, 50, 0],
-    'Interaksi_OOTD_x_Dibagikan': [5, 0, 0],
-    'Actual': [0, 1, 1]  # Optional: actual labels for comparison
+    'Video_ID': [1, 2], 'Caption': ['Video Gaming', 'Video Masak'],
+    'Suka': [2000, 100], 'Komentar': [50, 5], 'Dibagikan': [20, 2],
+    'Durasi_Video': [45, 15], 'Jumlah_Hashtag': [5, 2], 'Panjang_Caption': [50, 20],
+    'Jam_Posting': [18, 10], 'Is_Weekend': [1, 0], 'Jam_Sejak_Publikasi': [24, 5],
+    # Contoh Kategori
+    'Kat_Gaming': [1, 0], 'Kat_Kuliner': [0, 1], 'Kat_Fashion': [0, 0],
+    # Contoh Audio
+    'Audio_Populer': [1, 0], 'Audio_Original': [0, 1], 'Audio_Lainnya': [0, 0],
+    # Contoh Interaksi
+    'Interaksi_Gaming_Suka': [2000, 0], 'Interaksi_Kuliner_Suka': [0, 100],
+    # Fitur Lain
+    'Kekuatan_Tren_Audio': [0.9, 0.5], 'Kekuatan_Tren_Hashtag': [0.8, 0.5],
+    'Apakah_Kolaborasi': [0, 0], 'Format_Konten_Video': [1, 1],
+    'Actual': [1, 0] # Optional
 }
+# Lengkapi kolom wajib lainnya dengan 0
+for col in ['Kat_Daily', 'Kat_Edukasi_Karir', 'Kat_Religi', 'Kat_Beauty', 'Kat_Hiburan', 
+            'Kat_Musik_Konser', 'Kat_Jedag Jedug', 'Kat_Lainnya', 'Kat_Tutorial', 'Kat_Vlog', 'Kat_OOTD',
+            'Tipe_Konten_Gaming', 'Tipe_Konten_Kuliner', 'Tipe_Konten_Fashion', # Alias
+            'Tipe_Audio_Audio Original', 'Tipe_Audio_Audio Populer', 'Tipe_Audio_Audio Lainnya']:
+    if col not in template_data:
+        template_data[col] = [0, 0]
 
 template_df = pd.DataFrame(template_data)
-
-# Convert to CSV
 csv_template = template_df.to_csv(index=False)
 
 col1, col2 = st.columns([1, 3])
 with col1:
-    st.download_button(
-        label="📥 Unduh Template CSV",
-        data=csv_template,
-        file_name="template_prediksi_tiktok.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
+    st.download_button("📥 Unduh Template CSV", csv_template, "template_prediksi_batch.csv", "text/csv", use_container_width=True)
 with col2:
-    st.info("💡 Template berisi 3 contoh data. Hapus baris contoh dan isi dengan data Anda sendiri.")
+    st.info("💡 Gunakan halaman **Preproses Data** untuk membuat file CSV secara otomatis dari data mentah.")
 
 st.markdown("---")
 
-# File upload
+# --- FILE UPLOAD ---
 st.subheader("📁 Upload File CSV")
 
-# Check if there's preprocessed data from Data Preprocessing page
 uploaded_file = None
 df = None
 
+# Auto-load check
 if st.session_state.get('auto_load_preprocessed', False) and st.session_state.get('preprocessed_data_ready', False):
-    # Auto-load preprocessed data
     df = st.session_state.get('preprocessed_data')
     if df is not None:
-        st.info("ℹ️ Data otomatis dimuat dari halaman Data Preprocessing")
-        st.success(f"✅ Data berhasil dimuat! Total baris: {len(df)}")
-
-        # Show preview
-        with st.expander("👁️ Preview Data (5 baris pertama)"):
-            st.dataframe(df.head(), use_container_width=True)
-
-        # Clear the auto-load flag so it doesn't auto-load on refresh
+        st.info("ℹ️ Data otomatis dimuat dari hasil Preproses.")
         st.session_state['auto_load_preprocessed'] = False
 
 if df is None:
-    # Show file uploader if no auto-loaded data
-    uploaded_file = st.file_uploader(
-        "Pilih file CSV untuk diprediksi",
-        type=['csv'],
-        help="Upload file CSV yang sudah diisi dengan data video"
-    )
+    uploaded_file = st.file_uploader("Pilih file CSV", type=['csv'])
 
 if uploaded_file is not None:
     try:
-        # Load CSV
         df = pd.read_csv(uploaded_file)
-
-        st.success(f"✅ File berhasil diunggah! Total baris: {len(df)}")
-
-        # Show preview
-        with st.expander("👁️ Preview Data (5 baris pertama)"):
-            st.dataframe(df.head(), use_container_width=True)
-
+        st.success(f"✅ File dimuat! Total: {len(df)} baris")
     except Exception as e:
-        st.error(f"❌ Gagal membaca file: {str(e)}")
+        st.error(f"Gagal membaca file: {e}")
         st.stop()
 
-# Process data if available (either from upload or auto-load)
+# --- PREDICTION LOGIC ---
 if df is not None:
-    try:
-        # Get required features from model
-        required_features = model_handler.feature_names
+    # Validasi Kolom
+    required_features = model_handler.feature_names
+    missing = [c for c in required_features if c not in df.columns]
+    
+    if missing:
+        st.error("❌ Format File Tidak Sesuai")
+        st.warning(f"Kolom hilang: {', '.join(missing[:5])}...")
+        st.stop()
 
-        # Check for required columns
-        missing_columns = set(required_features) - set(df.columns)
+    with st.expander("👁️ Preview Data Input"):
+        st.dataframe(df.head(), use_container_width=True)
 
-        if missing_columns:
-            st.error(f"❌ Kolom yang hilang: {', '.join(missing_columns)}")
-            st.warning("Pastikan file CSV memiliki semua kolom yang diperlukan. Download template untuk referensi.")
-            st.stop()
+    if st.button("🚀 Jalankan Prediksi", type="primary", use_container_width=True):
+        with st.spinner("Sedang memproses prediksi massal..."):
+            try:
+                # Prediksi
+                X = df[required_features].copy()
+                preds, probs = model_handler.predict_batch(X)
+                
+                # Simpan Hasil
+                df['Prediksi'] = preds
+                df['Label_Prediksi'] = df['Prediksi'].map({0: 'Tidak Trending', 1: 'Trending'})
+                df['Confidence_Score'] = probs.max(axis=1)
+                
+                st.success("✅ Prediksi Selesai!")
+                st.markdown("---")
 
-        st.success("✅ Semua kolom yang diperlukan tersedia!")
+                # ==========================================
+                # 📊 BAGIAN VISUALISASI UTAMA
+                # ==========================================
+                st.header("📊 Dashboard Hasil Prediksi")
 
-        # Check for 'Actual' column
-        has_actual = 'Actual' in df.columns
+                # 1. Ringkasan Angka
+                c1, c2, c3, c4 = st.columns(4)
+                total = len(df)
+                trending = (df['Prediksi'] == 1).sum()
+                c1.metric("Total Video", total)
+                c2.metric("Diprediksi Trending", trending, f"{trending/total*100:.1f}%")
+                c3.metric("Tidak Trending", total - trending)
+                c4.metric("Rerata Keyakinan", f"{df['Confidence_Score'].mean()*100:.1f}%")
 
-        if has_actual:
-            st.info("📊 Kolom 'Actual' ditemukan. Analisis perbandingan akan tersedia setelah prediksi.")
+                st.markdown("---")
 
-        st.markdown("---")
+                # 2. Distribusi & Confidence (Fitur Lama + Update)
+                col_left, col_right = st.columns(2)
+                
+                with col_left:
+                    st.subheader("Proporsi Prediksi")
+                    counts = df['Label_Prediksi'].value_counts()
+                    fig_pie = create_pie_chart(counts.values, counts.index, title="Trending vs Tidak", hole=0.4)
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                    
+                with col_right:
+                    st.subheader("Sebaran Keyakinan (Confidence)")
+                    conf_bins = pd.cut(df['Confidence_Score'], bins=5).value_counts().sort_index()
+                    conf_df = pd.DataFrame({'Range': conf_bins.index.astype(str), 'Jumlah': conf_bins.values})
+                    fig_bar = create_bar_chart(conf_df, x='Range', y='Jumlah', title="Histogram Confidence", 
+                                             xaxis_title="Rentang", yaxis_title="Jumlah", orientation='v')
+                    st.plotly_chart(fig_bar, use_container_width=True)
 
-        # Prediction button
-        if st.button("🚀 Jalankan Prediksi", use_container_width=True, type="primary"):
-            with st.spinner("Sedang memproses prediksi..."):
-                # Extract features
-                X = df[required_features]
+                st.markdown("---")
 
-                # Make predictions
-                predictions, probabilities = model_handler.predict_batch(X)
+                # 3. [FITUR BARU] ANALISIS FAKTOR & KOMPARASI
+                st.header("🔍 Analisis Mendalam (Deep Dive)")
+                
+                col_a, col_b = st.columns(2)
+                
+                with col_a:
+                    st.subheader("🌟 Faktor Penentu (Global)")
+                    # Ambil Feature Importance dari Model Handler
+                    feature_imp = model_handler.get_feature_importance()
+                    
+                    if feature_imp is not None:
+                        # Mapping nama fitur agar lebih cantik (Sama seperti Prediksi Tunggal)
+                        rename_fitur = {
+                            'Suka': 'Jml Suka', 'Komentar': 'Jml Komentar', 'Dibagikan': 'Jml Share',
+                            'Durasi_Video': 'Durasi', 'Jam_Sejak_Publikasi': 'Usia Video',
+                            'Panjang_Caption': 'Panjang Caption', 'Jam_Upload': 'Jam Upload'
+                        }
+                        # Bersihkan nama
+                        feature_imp['feature_clean'] = feature_imp['feature'].apply(
+                            lambda x: rename_fitur.get(x, x.replace('Kat_', 'Kategori: ').replace('Audio_', 'Audio: '))
+                        )
+                        
+                        fig_imp = create_bar_chart(
+                            feature_imp.head(10), 
+                            x='feature_clean', y='importance', 
+                            title="10 Faktor Paling Berpengaruh", 
+                            xaxis_title="Faktor", yaxis_title="Bobot", 
+                            orientation='h'
+                        )
+                        st.plotly_chart(fig_imp, use_container_width=True)
+                    else:
+                        st.info("Feature importance tidak tersedia untuk model ini.")
 
-                if predictions is not None:
-                    # Add predictions to dataframe
-                    df['Prediksi'] = predictions
-                    df['Prediksi_Label'] = df['Prediksi'].map({
-                        0: 'Tidak Trending',
-                        1: 'Trending'
-                    })
-                    df['Confidence'] = probabilities.max(axis=1)
-                    df['Prob_Tidak_Trending'] = probabilities[:, 0]
-                    df['Prob_Trending'] = probabilities[:, 1]
-
-                    st.success("✅ Prediksi berhasil dilakukan!")
-
-                    st.markdown("---")
-
-                    # Display results
-                    st.header("📊 Hasil Prediksi")
-
-                    # Summary metrics
-                    col1, col2, col3, col4 = st.columns(4)
-
-                    with col1:
-                        st.metric(
-                            label="Total Video",
-                            value=len(df)
+                with col_b:
+                    st.subheader("📈 Profil: Trending vs Tidak")
+                    # Bandingkan Rata-rata Metrik Utama
+                    if 'Suka' in df.columns:
+                        avg_stats = df.groupby('Label_Prediksi')[['Suka', 'Komentar', 'Dibagikan']].mean().reset_index()
+                        
+                        # Tampilkan Chart Sederhana (Likes)
+                        fig_comp = create_bar_chart(
+                            avg_stats, 
+                            x='Label_Prediksi', y='Suka', 
+                            title="Rata-rata Likes per Kelompok Prediksi", 
+                            xaxis_title="Prediksi", yaxis_title="Avg Likes",
+                            orientation='v'
+                        )
+                        st.plotly_chart(fig_comp, use_container_width=True)
+                        
+                        # Tampilkan Dataframe kecil
+                        st.caption("Rata-rata Metrik:")
+                        
+                        # --- PERBAIKAN DI SINI ---
+                        # Menggunakan parameter 'subset' agar format angka hanya berlaku untuk kolom numerik
+                        st.dataframe(
+                            avg_stats.style.format("{:.0f}", subset=['Suka', 'Komentar', 'Dibagikan']), 
+                            use_container_width=True, 
+                            hide_index=True
                         )
 
-                    with col2:
-                        trending_count = (df['Prediksi'] == 1).sum()
-                        st.metric(
-                            label="Diprediksi Trending",
-                            value=trending_count,
-                            delta=f"{trending_count/len(df)*100:.1f}%"
-                        )
+                # ==========================================
+                # EVALUASI (Jika Ada Kolom Actual)
+                # ==========================================
+                if 'Actual' in df.columns:
+                    st.header("🎯 Evaluasi Akurasi")
+                    from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+                    
+                    y_true, y_pred = df['Actual'], df['Prediksi']
+                    acc = accuracy_score(y_true, y_pred)
+                    
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.metric("Akurasi Batch Ini", f"{acc*100:.1f}%")
+                        cm = confusion_matrix(y_true, y_pred)
+                        fig_cm = create_heatmap(cm, x_labels=['Pred: 0', 'Pred: 1'], y_labels=['Act: 0', 'Act: 1'], title="Confusion Matrix")
+                        st.plotly_chart(fig_cm, use_container_width=True)
+                        
+                    with c2:
+                        st.text("Detail Laporan:")
+                        report = pd.DataFrame(classification_report(y_true, y_pred, output_dict=True)).transpose()
+                        st.dataframe(report.style.format("{:.2f}"), use_container_width=True)
 
-                    with col3:
-                        not_trending_count = (df['Prediksi'] == 0).sum()
-                        st.metric(
-                            label="Tidak Trending",
-                            value=not_trending_count,
-                            delta=f"{not_trending_count/len(df)*100:.1f}%"
-                        )
+                st.markdown("---")
 
-                    with col4:
-                        avg_confidence = df['Confidence'].mean()
-                        st.metric(
-                            label="Avg. Confidence",
-                            value=f"{avg_confidence*100:.1f}%"
-                        )
+                # ==========================================
+                # TABEL & EKSPOR
+                # ==========================================
+                st.subheader("📋 Data Hasil Prediksi")
+                
+                cols_show = ['Video_ID', 'Caption', 'Label_Prediksi', 'Confidence_Score']
+                cols_show = [c for c in cols_show if c in df.columns]
+                st.dataframe(df[cols_show], use_container_width=True)
 
-                    st.markdown("---")
+                st.subheader("💾 Simpan Hasil")
+                c1, c2 = st.columns(2)
+                tstamp = datetime.now().strftime("%Y%m%d_%H%M")
+                
+                with c1:
+                    st.download_button("📥 Unduh CSV", df.to_csv(index=False), f"prediksi_{tstamp}.csv", "text/csv", use_container_width=True)
+                with c2:
+                    buffer = BytesIO()
+                    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                        df.to_excel(writer, index=False)
+                    st.download_button("📥 Unduh Excel", buffer.getvalue(), f"prediksi_{tstamp}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
-                    # Visualizations
-                    col1, col2 = st.columns(2)
+            except Exception as e:
+                st.error(f"Error proses: {e}")
+                st.exception(e)
 
-                    with col1:
-                        st.subheader("📊 Distribusi Prediksi")
-
-                        # Pie chart
-                        prediction_counts = df['Prediksi_Label'].value_counts()
-                        fig_pie = create_pie_chart(
-                            values=prediction_counts.values,
-                            names=prediction_counts.index,
-                            title="Distribusi Hasil Prediksi",
-                            hole=0.4
-                        )
-                        st.plotly_chart(fig_pie, use_container_width=True)
-
-                    with col2:
-                        st.subheader("📈 Distribusi Confidence Score")
-
-                        # Histogram of confidence
-                        conf_dist = df.groupby(pd.cut(df['Confidence'], bins=10)).size().reset_index()
-                        conf_dist.columns = ['Range', 'Count']
-                        conf_dist['Range'] = conf_dist['Range'].astype(str)
-
-                        fig_conf = create_bar_chart(
-                            conf_dist,
-                            x='Range',
-                            y='Count',
-                            title="Distribusi Confidence Score",
-                            xaxis_title="Confidence Range",
-                            yaxis_title="Jumlah Video"
-                        )
-                        st.plotly_chart(fig_conf, use_container_width=True)
-
-                    st.markdown("---")
-
-                    # Comparison Analysis (if actual labels available)
-                    if has_actual:
-                        st.header("🔍 Analisis Perbandingan")
-
-                        from sklearn.metrics import (
-                            confusion_matrix,
-                            accuracy_score,
-                            precision_score,
-                            recall_score,
-                            f1_score,
-                            classification_report
-                        )
-
-                        y_true = df['Actual']
-                        y_pred = df['Prediksi']
-
-                        # Metrics
-                        col1, col2, col3, col4 = st.columns(4)
-
-                        with col1:
-                            accuracy = accuracy_score(y_true, y_pred)
-                            st.metric("Akurasi", f"{accuracy*100:.1f}%")
-
-                        with col2:
-                            precision = precision_score(y_true, y_pred, zero_division=0)
-                            st.metric("Presisi", f"{precision*100:.1f}%")
-
-                        with col3:
-                            recall = recall_score(y_true, y_pred, zero_division=0)
-                            st.metric("Recall", f"{recall*100:.1f}%")
-
-                        with col4:
-                            f1 = f1_score(y_true, y_pred, zero_division=0)
-                            st.metric("F1-Score", f"{f1*100:.1f}%")
-
-                        st.markdown("---")
-
-                        # Confusion Matrix
-                        col1, col2 = st.columns([1, 1])
-
-                        with col1:
-                            st.subheader("📊 Confusion Matrix")
-
-                            cm = confusion_matrix(y_true, y_pred)
-
-                            # Create heatmap
-                            fig_cm = create_heatmap(
-                                data=cm,
-                                x_labels=['Tidak Trending', 'Trending'],
-                                y_labels=['Tidak Trending', 'Trending'],
-                                title="Confusion Matrix",
-                                colorscale='Blues'
-                            )
-                            st.plotly_chart(fig_cm, use_container_width=True)
-
-                        with col2:
-                            st.subheader("📋 Classification Report")
-
-                            # Classification report
-                            report = classification_report(
-                                y_true,
-                                y_pred,
-                                target_names=['Tidak Trending', 'Trending'],
-                                output_dict=True
-                            )
-
-                            report_df = pd.DataFrame(report).transpose()
-                            report_df = report_df[['precision', 'recall', 'f1-score', 'support']]
-                            report_df = report_df.round(3)
-
-                            st.dataframe(report_df, use_container_width=True)
-
-                        # Misclassified videos
-                        misclassified = df[df['Actual'] != df['Prediksi']]
-
-                        if len(misclassified) > 0:
-                            st.markdown("---")
-                            st.subheader("❌ Video yang Salah Diprediksi")
-
-                            st.warning(f"Total video yang salah diprediksi: {len(misclassified)} dari {len(df)} ({len(misclassified)/len(df)*100:.1f}%)")
-
-                            # Show misclassified videos
-                            display_cols = ['Video_ID', 'Caption', 'Actual', 'Prediksi_Label', 'Confidence']
-                            display_cols = [col for col in display_cols if col in misclassified.columns]
-
-                            if len(display_cols) > 0:
-                                st.dataframe(
-                                    misclassified[display_cols].head(10),
-                                    use_container_width=True,
-                                    hide_index=True
-                                )
-                        else:
-                            st.success("✅ Semua prediksi benar! Akurasi 100%")
-
-                    st.markdown("---")
-
-                    # Results table
-                    st.subheader("📋 Detail Hasil Prediksi")
-
-                    # Select columns to display
-                    display_columns = ['Video_ID', 'Caption'] if 'Video_ID' in df.columns and 'Caption' in df.columns else []
-                    display_columns += ['Prediksi_Label', 'Confidence', 'Prob_Trending', 'Prob_Tidak_Trending']
-
-                    if has_actual:
-                        display_columns.insert(2, 'Actual')
-
-                    # Filter columns that exist
-                    display_columns = [col for col in display_columns if col in df.columns]
-
-                    # Format and display
-                    result_df = df[display_columns].copy()
-
-                    if 'Confidence' in result_df.columns:
-                        result_df['Confidence'] = result_df['Confidence'].apply(lambda x: f"{x*100:.1f}%")
-                    if 'Prob_Trending' in result_df.columns:
-                        result_df['Prob_Trending'] = result_df['Prob_Trending'].apply(lambda x: f"{x*100:.1f}%")
-                    if 'Prob_Tidak_Trending' in result_df.columns:
-                        result_df['Prob_Tidak_Trending'] = result_df['Prob_Tidak_Trending'].apply(lambda x: f"{x*100:.1f}%")
-
-                    st.dataframe(result_df, use_container_width=True, hide_index=True)
-
-                    st.markdown("---")
-
-                    # Export section
-                    st.subheader("💾 Ekspor Hasil")
-
-                    col1, col2, col3 = st.columns(3)
-
-                    # CSV Export
-                    with col1:
-                        csv_data = df.to_csv(index=False)
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-                        st.download_button(
-                            label="📥 Unduh CSV",
-                            data=csv_data,
-                            file_name=f"hasil_prediksi_{timestamp}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-
-                    # Excel Export
-                    with col2:
-                        buffer = BytesIO()
-                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                            df.to_excel(writer, index=False, sheet_name='Prediksi')
-
-                        excel_data = buffer.getvalue()
-
-                        st.download_button(
-                            label="📥 Unduh Excel",
-                            data=excel_data,
-                            file_name=f"hasil_prediksi_{timestamp}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
-
-                    # Summary Export (predictions only)
-                    with col3:
-                        summary_cols = display_columns
-                        summary_df = df[summary_cols]
-                        summary_csv = summary_df.to_csv(index=False)
-
-                        st.download_button(
-                            label="📥 Unduh Ringkasan",
-                            data=summary_csv,
-                            file_name=f"ringkasan_prediksi_{timestamp}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-
-                else:
-                    st.error("❌ Terjadi kesalahan saat melakukan prediksi. Silakan cek format data Anda.")
-
-    except Exception as e:
-        st.error(f"❌ Terjadi kesalahan saat memproses data: {str(e)}")
-        st.exception(e)
-
-# Show placeholder when no data available
-if df is None and not st.session_state.get('preprocessed_data_ready', False):
-    st.info("📁 Silakan upload file CSV atau gunakan fitur Data Preprocessing untuk memulai prediksi batch")
-
-    # Show example
-    st.markdown("---")
-    st.subheader("📝 Contoh Format Data")
-
-    example_df = pd.DataFrame({
-        'Video_ID': [1, 2, 3],
-        'Suka': [150, 500, 2000],
-        'Komentar': [15, 50, 200],
-        'Dibagikan': [8, 25, 100],
-        'Durasi_Video': [30, 45, 60],
-        'Jumlah_Hashtag': [3, 5, 4],
-        '...': ['...', '...', '...']
-    })
-
-    st.dataframe(example_df, use_container_width=True, hide_index=True)
-    st.caption("💡 Download template lengkap menggunakan tombol di atas")
+# Placeholder
+if df is None and not uploaded_file:
+    st.info("👈 Mulai dengan mengupload file CSV atau hasil preprocessing.")
 
 st.markdown("---")
-
-# Footer
-st.markdown("""
-<div style='text-align: center; color: #666; padding: 1rem 0;'>
-    <p>📤 Batch Prediction - Prediksi massal untuk analisis performa konten</p>
-    <p>Mendukung format CSV dan Excel untuk ekspor hasil</p>
-</div>
-""", unsafe_allow_html=True)
+st.caption("📤 Batch Prediction System - Support Visualisasi Lanjutan")
