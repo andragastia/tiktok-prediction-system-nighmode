@@ -1,40 +1,46 @@
 import pandas as pd
 import os
 
-def save_new_data_to_csv(data_dict, file_path='data/dataset_tiktok.csv'):
-    """
-    Menyimpan data baru ke file CSV dataset tanpa menghapus data lama (Append Mode).
-    """
+def save_new_data_to_csv(new_data_dict, file_path='data/dataset_tiktok.csv'):
     try:
-        # 1. Cek apakah file ada untuk membaca header/kolom yang valid
-        if not os.path.exists(file_path):
-            return False, f"File dataset tidak ditemukan di: {file_path}"
+        # 1. Load data lama untuk mengambil struktur kolom (Schema)
+        if os.path.exists(file_path):
+            df_old = pd.read_csv(file_path)
+            existing_columns = df_old.columns.tolist()
+        else:
+            return False, "File dataset tidak ditemukan!"
+
+        # 2. Siapkan dictionary baru dengan SEMUA kolom yang ada di CSV lama
+        #    Isi default dengan None/NaN dulu
+        complete_data_row = {col: None for col in existing_columns}
         
-        # Baca hanya header untuk memastikan urutan kolom sesuai
-        df_existing_header = pd.read_csv(file_path, nrows=0)
-        expected_cols = df_existing_header.columns.tolist()
+        # 3. Timpa (Update) dengan data dari Input User
+        #    Ini memastikan data user masuk, sisanya tetap None
+        complete_data_row.update(new_data_dict)
         
-        # 2. Siapkan baris data baru dengan urutan kolom yang benar
-        row_data = {}
-        for col in expected_cols:
-            # Ambil data dari input user, jika tidak ada isi dengan None/Default
-            row_data[col] = data_dict.get(col, None)
-            
-            # --- Default Value untuk kolom yang tidak diinput user ---
-            if col == 'authorMeta.name' and row_data[col] is None:
-                row_data[col] = 'Manual_Input_User' # Penanda data manual
-            elif col == 'webVideoUrl' and row_data[col] is None:
-                row_data[col] = 'https://tiktok.com/manual-entry'
-            elif col == 'musicMeta.musicOriginal' and row_data[col] is None:
-                row_data[col] = False
+        # 4. Handling Nilai Kosong (PENTING AGAR TIDAK DI-DROP DASHBOARD)
+        #    Kita isi nilai NaN dengan default value agar lolos filter cleaning
+        final_row = {}
+        for col, val in complete_data_row.items():
+            if val is None:
+                # Logika Default Value:
+                if 'Count' in col or 'duration' in col: 
+                    final_row[col] = 0        # Kolom angka diisi 0
+                elif 'original' in col:       # Kolom boolean
+                    final_row[col] = False
+                else:
+                    final_row[col] = "-"      # Kolom teks diisi "-"
+            else:
+                final_row[col] = val
+
+        # 5. Buat DataFrame baru dan simpan
+        df_new = pd.DataFrame([final_row])
         
-        # 3. Buat DataFrame 1 baris
-        df_new = pd.DataFrame([row_data])
+        # Gabungkan dan simpan
+        df_updated = pd.concat([df_old, df_new], ignore_index=True)
+        df_updated.to_csv(file_path, index=False)
         
-        # 4. Append ke CSV (mode='a') tanpa menulis header lagi
-        df_new.to_csv(file_path, mode='a', header=False, index=False)
+        return True, "Data berhasil disimpan dan struktur kolom disesuaikan!"
         
-        return True, "Data berhasil disimpan ke database!"
-    
     except Exception as e:
-        return False, f"Terjadi kesalahan saat menyimpan: {str(e)}"
+        return False, f"Gagal menyimpan: {str(e)}"

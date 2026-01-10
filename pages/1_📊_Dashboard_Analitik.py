@@ -8,6 +8,11 @@ import numpy as np
 import sys
 from pathlib import Path
 
+if "data_changed" in st.session_state and st.session_state["data_changed"]:
+    st.cache_data.clear()  # Hapus cache
+    st.session_state["data_changed"] = False # Reset sinyal
+    st.rerun()
+
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 

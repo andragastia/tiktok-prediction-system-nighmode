@@ -74,10 +74,10 @@ with st.form("input_form"):
             if success:
                 st.success(message)
                 
-                # --- FITUR PENTING: RESET CACHE ---
-                # Ini yang membuat Dashboard langsung update tanpa restart aplikasi
+                # UPDATE BAGIAN INI:
                 st.cache_data.clear() 
-                st.info("Cache sistem telah dibersihkan agar Dashboard menampilkan data terbaru.")
+                st.session_state["data_changed"] = True  # Kirim sinyal ke Dashboard
                 
+                st.info("Cache dibersihkan. Silakan buka Dashboard untuk melihat data baru.")
             else:
                 st.error(message)
