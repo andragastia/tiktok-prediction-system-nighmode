@@ -1,12 +1,14 @@
 """
-TikTok Content Performance Prediction System
-Main entry point for the Streamlit application
+Sistem Prediksi Performa Konten TikTok
+Titik masuk utama untuk aplikasi Streamlit
 """
 import streamlit as st
 from utils.data_processor import get_data_processor
-from utils.model_handler import get_model_handler
+# Catatan: utils.model_handler mungkin tidak digunakan langsung di sini jika hanya menampilkan statistik data
+# tapi tetap kita import untuk konsistensi jika nanti dibutuhkan inisialisasi awal.
+from utils.model_handler import get_model_handler 
 
-# Page configuration
+# Konfigurasi Halaman
 st.set_page_config(
     page_title="Beranda", 
     page_icon="🏠",       
@@ -14,13 +16,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Main header
+# Load Data Processor (Singleton)
+# Ini memastikan data terbaru termuat saat aplikasi dibuka
+dp = get_data_processor()
+dp.load_data() 
+
+# --- HEADER UTAMA ---
 st.title("🎯 Sistem Prediksi Performa Konten TikTok")
-st.markdown('<div class="sub-header">Platform Analitik dan Prediksi untuk Content Creator @septianndt</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Platform Analitik dan Prediksi untuk Kreator Konten (Multi-Influencer)</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
-# Introduction
+# --- PENDAHULUAN ---
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -28,168 +35,172 @@ with col1:
 
     st.markdown("""
     Sistem ini membantu Anda menganalisis dan memprediksi performa konten TikTok menggunakan:
-    - **Machine Learning**: Random Forest Classifier dengan 100 trees
-    - **Data Analytics**: Analisis mendalam dari 166 video
-    - **Prediksi Real-time**: Prediksi potensi trending untuk konten baru
+    - **Machine Learning**: *Random Forest Classifier*
+    - **Analisis Data**: Analisis mendalam dari kumpulan data video TikTok
+    - **Prediksi *Real-time***: Prediksi potensi *trending* untuk konten baru
 
     ### 🎨 Fitur Utama:
 
-    **1. 📊 Dashboard Analitik**
-    - Analisis performa konten secara komprehensif
-    - Visualisasi pola engagement dan trending
-    - Identifikasi waktu terbaik untuk posting
+    **1. 📊 Dasbor Analitik (*Analytics Dashboard*)**
+    - Analisis performa konten secara komprehensif dari berbagai *influencer*.
+    - Visualisasi pola keterlibatan (*engagement*) dan tren.
+    - Peringkat performa (*Leaderboard*) kreator konten.
 
     **2. 🔮 Prediksi Tunggal**
-    - Form input interaktif untuk prediksi individual
-    - Confidence score dan analisis feature importance
-    - Rekomendasi strategi konten
+    - Formulir interaktif untuk prediksi satu video.
+    - Skor kepercayaan (*confidence score*) dan analisis kepentingan fitur.
+    - Rekomendasi strategi konten berdasarkan hasil prediksi.
 
-    **3. 🔧 Data Preprocessing** 
-    - Konversi otomatis data mentah dari FreeTikTokScraper
-    - Extract 22 features untuk model ML
-    - Download file siap prediksi
-    - Mendukung upload RAW data
+    **3. 📝 Input Data Baru**
+    - Tambahkan data video baru secara manual untuk memperkaya basis data.
+    - Pembaruan sistem secara langsung (*real-time*).
 
-    **4. 📤 Prediksi Massal**
-    - Upload CSV untuk batch prediction
-    - Perbandingan hasil prediksi vs aktual
-    - Export hasil dalam format CSV/Excel
+    **4. 🔧 Pra-pemrosesan Data (*Data Preprocessing*)** - Konversi otomatis data mentah.
+    - Ekstraksi fitur untuk model *Machine Learning*.
+    - Unduh data siap pakai.
+
+    **5. 📤 Prediksi Massal**
+    - Unggah CSV untuk prediksi banyak video sekaligus.
+    - Perbandingan hasil prediksi vs aktual.
     """)
 
 with col2:
     st.info("""
-    **💡 Quick Start**
+    **💡 Mulai Cepat (*Quick Start*)**
 
-    **Punya data mentah?**
-    1. 🔧 **Preprocessing** - Konversi data RAW
-    2. 📤 **Batch Prediction** - Prediksi massal
+    **Ingin Menambah Data?**
+    1. 📝 **Input Data Baru** - Masukkan data manual
+    2. 🔧 **Pra-pemrosesan** - Jika punya data mentah
 
-    **Sudah punya data processed?**
-    1. 📊 **Dashboard** - Lihat insights
-    2. 🔮 **Prediksi Tunggal** - Test individual
-    3. 📤 **Prediksi Massal** - Bulk analysis
+    **Ingin Menganalisis?**
+    1. 📊 **Dasbor Analitik** - Lihat wawasan data
+    2. 🔮 **Prediksi Tunggal** - Cek potensi video
+    3. 📤 **Prediksi Massal** - Analisis *batch*
 
     ---
 
-    **📊 Dataset Info**
-    - Total Video: 166
-    - Periode: 2023-2024
-    - Creator: @septianndt
+    **📊 Info Dataset Saat Ini**
+    Data diambil secara *real-time* dari sistem:
     """)
+    
+    # Menampilkan info dataset dinamis
+    total_influencers = len(dp.get_unique_authors())
+    total_vids = len(dp.df) if dp.df is not None else 0
+    st.write(f"- **Total Video:** {total_vids}")
+    st.write(f"- **Total Influencer:** {total_influencers}")
 
-# Load data for quick stats
-@st.cache_data
-def load_quick_stats():
-    """Load and cache quick statistics"""
-    data_processor = get_data_processor()
-    return data_processor.get_summary_stats()
+# --- STATISTIK CEPAT ---
+st.markdown("---")
+st.subheader("📈 Statistik Cepat")
 
-try:
-    stats = load_quick_stats()
+# Mengambil statistik terbaru dari Data Processor
+stats = dp.get_summary_stats()
 
-    st.markdown("---")
-    st.subheader("📈 Statistik Cepat")
-
-    # Display key metrics in columns
+if stats:
     col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.metric(
             label="Total Video",
-            value=f"{stats['total_videos']}"
+            value=f"{stats.get('total_videos', 0)}"
         )
 
     with col2:
         st.metric(
             label="Total Tayangan",
-            value=f"{stats['total_views']:,.0f}"
+            value=f"{stats.get('total_views', 0):,.0f}"
         )
 
     with col3:
         st.metric(
             label="Total Suka",
-            value=f"{stats['total_likes']:,.0f}"
+            value=f"{stats.get('total_likes', 0):,.0f}"
         )
 
     with col4:
         st.metric(
             label="Total Komentar",
-            value=f"{stats['total_comments']:,.0f}"
+            value=f"{stats.get('total_comments', 0):,.0f}"
         )
 
     with col5:
+        avg_er = stats.get('avg_engagement_rate', 0)
         st.metric(
-            label="Avg. Engagement",
-            value=f"{stats['avg_engagement_rate']:.2f}%"
+            label="Rerata *Engagement*",
+            value=f"{avg_er:.2f}%"
         )
-
-except Exception as e:
-    st.error(f"Terjadi kesalahan saat memuat data: {str(e)}")
+else:
+    st.error("Gagal memuat statistik. Pastikan dataset tersedia.")
 
 st.markdown("---")
 
-# Navigation guide
+# --- PANDUAN NAVIGASI ---
 st.subheader("🧭 Panduan Navigasi")
 
-col1, col2 = st.columns(2)
+# Baris 1: Analitik & Prediksi
+c1, c2 = st.columns(2)
 
-with col1:
+with c1:
     st.markdown("""
-    ### 📊 Analytics Dashboard
-    Jelajahi insights mendalam tentang:
-    - Performa konten berdasarkan waktu
-    - Tipe konten terbaik
-    - Pola engagement
-    - Top performing videos
+    ### 📊 Dasbor Analitik
+    Jelajahi wawasan mendalam tentang:
+    - Performa konten berdasarkan waktu & kategori
+    - Perbandingan antar *influencer*
+    - Pola keterlibatan (*engagement*)
     """)
-    if st.button("🚀 Buka Dashboard", key="nav_dashboard"):
-        st.switch_page("pages/1_📊_Analytics_Dashboard.py")
+    # Perbaiki path sesuai struktur folder Anda (gunakan nama file yang benar)
+    if st.button("🚀 Buka Dasbor", key="nav_dashboard"):
+        st.switch_page("pages/1_📊_Dashboard_Analitik.py") 
 
-with col2:
-    st.markdown("""
-    ### 🔧 Data Preprocessing
-    Konversi data mentah TikTok:
-    - Upload data dari FreeTikTokScraper
-    - Otomatis extract features
-    - Download file siap prediksi
-    - Langsung ke batch prediction
-    """)
-    if st.button("🔧 Proses Data", key="nav_preprocessing"):
-        st.switch_page("pages/4_🔧_Data_Preprocessing.py")
-
-col1, col2 = st.columns(2)
-
-with col1:
+with c2:
     st.markdown("""
     ### 🔮 Prediksi Tunggal
     Prediksi performa untuk satu konten:
     - Input manual fitur video
-    - Dapatkan prediksi trending
-    - Lihat confidence score
-    - Terima rekomendasi
+    - Dapatkan prediksi *Trending* / Tidak
+    - Lihat faktor penentu
     """)
     if st.button("🎯 Mulai Prediksi", key="nav_prediction"):
-        st.switch_page("pages/2_🔮_Prediction.py")
+        st.switch_page("pages/2_🔮_Prediksi_Tunggal.py")
 
-with col2:
+# Baris 2: Input & Tools
+c3, c4 = st.columns(2)
+
+with c3:
     st.markdown("""
-    ### 📤 Prediksi Massal
-    Upload CSV untuk prediksi batch:
-    - Prediksi banyak video sekaligus
-    - Bandingkan hasil
-    - Download report
-    - Analisis performa
+    ### 📝 Input Data Baru
+    Tambahkan data manual:
+    - Isi formulir data video
+    - Simpan ke basis data
+    - Perbarui analitik otomatis
     """)
-    if st.button("📥 Upload CSV", key="nav_batch"):
-        st.switch_page("pages/3_📤_Batch_Prediction.py")
+    # Pastikan file pages/5_📝_Input_Data_Baru.py sudah dibuat sesuai sesi sebelumnya
+    if st.button("✍️ Input Data", key="nav_input"):
+        st.switch_page("pages/5_📝_Input_Data_Baru.py")
+
+with c4:
+    st.markdown("""
+    ### 🔧 & 📤 Fitur Lanjutan
+    Alat bantu pengolahan data:
+    - **Pra-pemrosesan Data**: Bersihkan data mentah
+    - **Prediksi Massal**: Unggah CSV untuk analisis banyak
+    """)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔧 Preproses", key="nav_preprocessing"):
+            st.switch_page("pages/3_🔧_Preproses_Data.py")
+    with col_b:
+        if st.button("📥 Massal", key="nav_batch"):
+            st.switch_page("pages/4_📤_Prediksi_Massal.py")
 
 st.markdown("---")
 
-# Footer
+# --- FOOTER ---
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 2rem 0;'>
-    <p><strong>TikTok Content Performance Prediction System</strong></p>
+    <p><strong>Sistem Prediksi Performa Konten TikTok</strong></p>
     <p>Tugas Akhir Skripsi - UPN Veteran Jakarta</p>
-    <p>Developed with Streamlit • Powered by Random Forest Classifier</p>
+    <p>Dikembangkan dengan Streamlit • Didukung oleh <em>Random Forest Classifier</em></p>
+    <p>© 2025 Nayandra Agastia Putra</p>
 </div>
 """, unsafe_allow_html=True)
