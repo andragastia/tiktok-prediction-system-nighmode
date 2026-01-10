@@ -1,7 +1,7 @@
 """
 Analytics Dashboard Page
 Comprehensive analytics and insights for TikTok content performance
-(Updated: Multi-Influencer Support & Leaderboard)
+(Updated: Multi-Influencer Support & Leaderboard & Auto-Reload)
 """
 import streamlit as st
 import pandas as pd
@@ -9,11 +9,12 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# --- MEKANISME RELOAD (CACHE CLEARING) ---
+# --- MEKANISME RELOAD OTOMATIS (UPDATE PENTING) ---
+# Kode ini mendeteksi sinyal dari halaman Input Data Baru
 if "data_changed" in st.session_state and st.session_state["data_changed"]:
-    st.cache_data.clear()  # Hapus cache
+    st.cache_data.clear()  # Hapus cache memori agar data baru terbaca
     st.session_state["data_changed"] = False # Reset sinyal
-    st.rerun()
+    st.rerun() # Refresh halaman
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -38,7 +39,7 @@ st.set_page_config(
 # -------------------------------------------
 
 # Load data
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=0) # TTL=0 agar tidak cache terlalu lama (UPDATE)
 def load_all_data():
     """Load and cache all data"""
     dp = get_data_processor()
@@ -61,6 +62,11 @@ with st.spinner("Memuat data terbaru..."):
 
 # Ambil instance DataProcessor untuk akses helper functions
 dp = data['dp_instance']
+
+# Validasi Data Kosong agar tidak crash
+if dp.df is None or dp.df.empty:
+    st.error("❌ Data tidak ditemukan atau kosong. Silakan input data terlebih dahulu.")
+    st.stop()
 
 # --- SIDEBAR FILTERS (UPDATE: INFLUENCER FILTER) ---
 st.sidebar.header("🔧 Filter Data")
@@ -220,7 +226,7 @@ st.markdown("---")
 # Hanya muncul jika memilih "Semua Influencer"
 if selected_author == "Semua Influencer":
     st.header("🏆 Peringkat Influencer (Leaderboard)")
-    st.info("Membandingkan performa 14 Influencer berdasarkan total tayangan.")
+    st.info("Membandingkan performa influencer berdasarkan total tayangan.")
     
     # Ambil leaderboard dari DataProcessor
     leaderboard_df = dp.get_leaderboard()
@@ -253,10 +259,6 @@ if selected_author == "Semua Influencer":
     st.markdown("---")
 
 # ==================== PERFORMANCE OVER TIME ====================
-# ... (SISA KODE SAMA PERSIS SEPERTI MILIK ANDA, HANYA MEMASTIKAN DATA TIDAK KOSONG) ...
-# PENTING: Karena filtered_df sekarang bisa berubah, kita harus generate ulang data agregasi
-# berdasarkan filtered_df, bukan mengambil dari static 'data' dictionary di awal.
-
 st.header("⏰ Performa Berdasarkan Waktu")
 
 if not filtered_df.empty:

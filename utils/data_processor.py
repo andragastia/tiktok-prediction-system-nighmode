@@ -1,7 +1,8 @@
 """
 Data Processor Module
 Handles loading, preprocessing, and optimized classification of TikTok data
-(Final Version: Force Reload Support + Atomic Loading + 10 Categories)
+SINKRONISASI PENUH DENGAN JUPYTER NOTEBOOK (LANGKAH 4) & STRUKTUR DASHBOARD
+(Updated: Force Reload Support to Fix Data Sync Issue)
 """
 import pandas as pd
 import numpy as np
@@ -13,21 +14,25 @@ class DataProcessor:
     """Handle data loading and preprocessing"""
 
     def __init__(self):
-        # Gunakan Absolute Path untuk keamanan lokasi file
+        """
+        Initialize data processor with robust path handling
+        """
+        # Gunakan Absolute Path agar file selalu ditemukan (Safety Check)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_path = os.path.join(os.path.dirname(current_dir), 'data', 'dataset_tiktok.csv')
         
         self.df = None
-        self.list_audio_populer = [] 
+        self.processed_df = None
+        self.list_audio_populer = [] # Akan diisi dinamis saat load_data
 
-        # Mapping Hari
+        # --- 1. MAPPING HARI (INDONESIA) ---
         self.day_mapping = {
             'Monday': 'Senin', 'Tuesday': 'Selasa', 'Wednesday': 'Rabu',
             'Thursday': 'Kamis', 'Friday': 'Jumat', 'Saturday': 'Sabtu',
             'Sunday': 'Minggu'
         }
 
-        # Kamus 10 Kategori Lengkap
+        # --- 2. KAMUS KATEGORI LENGKAP (SESUAI NOTEBOOK) ---
         self.KAMUS_KATEGORI = {
             'Gaming': ['game', 'genshin', 'impact', 'honkai', 'star', 'rail', 'mlbb', 'mobile', 'legend', 'esport', 'roblox', 'minecraft', 'valorant', 'win', 'lose', 'victory'],
             'Fashion': ['ootd', 'outfit', 'baju', 'hijab', 'gamis', 'dress', 'style', 'kain', 'batik', 'kebaya', 'jeans', 'haul', 'shopee', 'tas', 'sepatu'],
@@ -43,95 +48,92 @@ class DataProcessor:
 
     def load_data(self):
         """
-        Membaca data dari CSV.
-        PENTING: Selalu membaca ulang dari disk (pd.read_csv) untuk menangkap data baru.
+        Load and preprocess dataset from CSV (Sesuai Langkah 4 Notebook)
+        [UPDATE] Selalu membaca ulang dari disk untuk menangkap data baru.
         """
         try:
             if not os.path.exists(self.data_path):
                 print(f"❌ Error: File tidak ditemukan di {self.data_path}")
                 return None
 
-            # [KUNCI PERBAIKAN] Jangan gunakan 'if self.df is not None'.
-            # Selalu baca baru dari file CSV.
-            df = pd.read_csv(self.data_path)
+            # [FIX] Selalu baca baru, jangan gunakan cache internal self.df
+            self.df = pd.read_csv(self.data_path)
 
-            # --- 1. CLEANING & TYPE CONVERSION (Mencegah KeyError) ---
-            # Pastikan kolom numerik benar-benar angka, ubah error jadi 0
-            numeric_cols = ['diggCount', 'commentCount', 'shareCount', 'playCount', 'videoMeta.duration']
-            for col in numeric_cols:
-                if col in df.columns:
-                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-                else:
-                    df[col] = 0
+            # A. Parsing Waktu & Fitur Waktu Dasar
+            # [FIX] Tambahkan errors='coerce' untuk keamanan jika ada tanggal rusak
+            self.df['createTimeISO'] = pd.to_datetime(self.df['createTimeISO'], errors='coerce')
+            self.df = self.df.dropna(subset=['createTimeISO']) # Hapus baris jika tanggal gagal diparsing
 
-            # --- 2. CALCULATED METRICS ---
-            # Engagement Rate (Pastikan playCount tidak 0 agar tidak error pembagian)
-            df['engagement_rate'] = (
-                (df['diggCount'] + df['commentCount'] + df['shareCount']) /
-                df['playCount'].replace(0, 1)
+            self.df['Waktu_Posting'] = self.df['createTimeISO'] # Alias
+            self.df['upload_date'] = self.df['createTimeISO'].dt.date
+            self.df['upload_hour'] = self.df['createTimeISO'].dt.hour
+            self.df['Jam_Posting'] = self.df['createTimeISO'].dt.hour # Alias Notebook
+            
+            # Mapping Hari
+            self.df['upload_day_english'] = self.df['createTimeISO'].dt.day_name()
+            self.df['upload_day'] = self.df['upload_day_english'].map(self.day_mapping)
+            self.df['Hari_Posting'] = self.df['upload_day_english'] # Alias Notebook
+            self.df['upload_year'] = self.df['createTimeISO'].dt.year
+            self.df['upload_month'] = self.df['createTimeISO'].dt.month_name()
+
+            # B. Fitur Baru: Is_Weekend (Langkah 4B Notebook)
+            self.df['Is_Weekend'] = self.df['Hari_Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
+
+            # C. Fitur Teks (Langkah 4C Notebook)
+            self.df['Panjang_Caption'] = self.df['text'].astype(str).apply(len)
+            self.df['Jumlah_Hashtag'] = self.df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
+
+            # D. Kategori Konten & Audio Logic (Langkah 4A)
+            # Klasifikasi Konten
+            self.df['content_type'] = self.df['text'].apply(self._classify_content_logic)
+            self.df['Kategori_Konten'] = self.df['content_type'] # Alias
+
+            # Logika Audio Populer (Top 20)
+            if 'musicMeta.musicName' in self.df.columns:
+                self.list_audio_populer = self.df['musicMeta.musicName'].value_counts().head(20).index.tolist()
+            
+            self.df['audio_type'] = self.df.apply(self._classify_audio_logic, axis=1)
+            self.df['Tipe_Audio'] = self.df['audio_type'] # Alias
+
+            # E. Metrik Engagement (Untuk Dashboard)
+            # [FIX] Konversi ke numeric untuk keamanan jika input manual berupa string
+            for col in ['diggCount', 'commentCount', 'shareCount', 'playCount']:
+                self.df[col] = pd.to_numeric(self.df[col], errors='coerce').fillna(0)
+
+            self.df['engagement_rate'] = (
+                (self.df['diggCount'] + self.df['commentCount'] + self.df['shareCount']) /
+                self.df['playCount'].replace(0, 1)
             ) * 100
 
-            # --- 3. TIME PARSING ---
-            df['createTimeISO'] = pd.to_datetime(df['createTimeISO'], errors='coerce')
-            df = df.dropna(subset=['createTimeISO']) # Hapus baris jika tanggal rusak
-
-            df['Waktu_Posting'] = df['createTimeISO']
-            df['upload_date'] = df['createTimeISO'].dt.date
-            df['upload_hour'] = df['createTimeISO'].dt.hour
-            df['Jam_Posting'] = df['createTimeISO'].dt.hour # Alias
-            
-            df['upload_day_english'] = df['createTimeISO'].dt.day_name()
-            df['upload_day'] = df['upload_day_english'].map(self.day_mapping)
-            df['Hari_Posting'] = df['upload_day_english'] # Alias
-            df['upload_year'] = df['createTimeISO'].dt.year
-            df['upload_month'] = df['createTimeISO'].dt.month_name()
-
-            # Is Weekend
-            df['Is_Weekend'] = df['Hari_Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
-
-            # --- 4. TEXT & CATEGORY ---
-            df['Panjang_Caption'] = df['text'].astype(str).apply(len)
-            df['Jumlah_Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
-            
-            df['content_type'] = df['text'].apply(self._classify_content_logic)
-            df['Kategori_Konten'] = df['content_type']
-
-            # --- 5. AUDIO ---
-            if 'musicMeta.musicName' in df.columns:
-                self.list_audio_populer = df['musicMeta.musicName'].value_counts().head(20).index.tolist()
-            
-            df['audio_type'] = df.apply(self._classify_audio_logic, axis=1)
-            df['Tipe_Audio'] = df['audio_type']
-
-            # Jika semua berhasil, baru simpan ke variable class
-            self.df = df
-            print(f"✅ Data loaded successfully: {len(self.df)} records.")
             return self.df
-
         except Exception as e:
             print(f"❌ Error loading data: {str(e)}")
-            self.df = None
             return None
 
-    # --- HELPER METHODS ---
+    # --- HELPER METHODS (Optimized Logic) ---
     def _classify_content_logic(self, text):
         if pd.isna(text): return 'Lainnya'
         text_lower = str(text).lower()
         for kategori, keywords in self.KAMUS_KATEGORI.items():
-            if any(keyword in text_lower for keyword in keywords): return kategori
+            if any(keyword in text_lower for keyword in keywords):
+                return kategori
         return 'Lainnya'
 
     def _classify_audio_logic(self, row):
+        # Adaptasi logika notebook ke struktur kolom dataset
         music_name = row.get('musicMeta.musicName', '')
         is_original = row.get('musicMeta.musicOriginal', False)
-        # Handle potensi string 'True'/'False' dari CSV
-        if str(is_original).lower() == 'true' or is_original == True: return 'Audio Original'
-        elif music_name in self.list_audio_populer: return 'Audio Populer'
-        else: return 'Audio Lainnya'
+        
+        # Logika: Audio Asli vs Populer (Top 20) vs Lainnya
+        if str(is_original).lower() == 'true' or is_original == True:
+            return 'Audio Original'
+        elif music_name in self.list_audio_populer:
+            return 'Audio Populer'
+        else:
+            return 'Audio Lainnya'
 
-    # --- DASHBOARD & STATS ---
+    # --- FUNGSI PENDUKUNG DASHBOARD (TIDAK DIUBAH AGAR FLOW SAMA) ---
     def get_unique_authors(self):
-        # Selalu coba load jika kosong
         if self.df is None: self.load_data()
         if self.df is None: return []
         if 'authorMeta.name' in self.df.columns:
@@ -140,11 +142,7 @@ class DataProcessor:
 
     def get_summary_stats(self, df=None):
         target_df = df if df is not None else self.df
-        
-        # SAFETY CHECK: Pastikan kolom engagement_rate ada
-        if target_df is None or target_df.empty or 'engagement_rate' not in target_df.columns:
-            return {}
-
+        if target_df is None or target_df.empty: return {}
         return {
             'total_videos': len(target_df),
             'total_views': target_df['playCount'].sum(),
@@ -152,7 +150,9 @@ class DataProcessor:
             'total_comments': target_df['commentCount'].sum(),
             'total_shares': target_df['shareCount'].sum(),
             'avg_views': target_df['playCount'].mean(),
-            'avg_likes': target_df['diggCount'].mean(), # Tambahan
+            'avg_likes': target_df['diggCount'].mean(),
+            'avg_comments': target_df['commentCount'].mean(),
+            'avg_shares': target_df['shareCount'].mean(),
             'avg_engagement_rate': target_df['engagement_rate'].mean(),
             'avg_duration': target_df['videoMeta.duration'].mean(),
             'date_range': {'start': target_df['createTimeISO'].min(), 'end': target_df['createTimeISO'].max()}
@@ -162,6 +162,7 @@ class DataProcessor:
         if self.df is None: self.load_data()
         if self.df is None: return pd.DataFrame()
         
+        # Ganti 'id' dengan 'webVideoUrl' karena 'id' tidak ada di CSV
         leaderboard = self.df.groupby('authorMeta.name').agg({
             'playCount': 'sum', 'diggCount': 'sum', 'shareCount': 'sum',
             'webVideoUrl': 'count', 'engagement_rate': 'mean'
@@ -179,7 +180,7 @@ class DataProcessor:
         if self.df is None: return 0
         return self.df['playCount'].quantile(percentile / 100)
 
-    # --- VISUALIZATIONS ---
+    # --- VISUALISASI HELPERS ---
     def get_performance_by_day(self, df=None):
         target_df = df if df is not None else self.df
         if target_df is None: return pd.DataFrame()
@@ -214,36 +215,63 @@ class DataProcessor:
         if target_df is None: return pd.DataFrame()
         return target_df.nlargest(n, 'playCount')
 
-    # --- PREDICTION FEATURES (Sync with Notebook) ---
+    # --- UPDATE UTAMA: PREPARE FEATURES (Sesuai Langkah 4 Notebook) ---
     def prepare_features_for_prediction(self, raw_features):
+        """
+        Menyiapkan fitur agar SAMA PERSIS dengan format Training .ipynb
+        """
+        # 1. Ambil Data Mentah
         text_content = raw_features.get('text_content', '')
         detected_category = self._classify_content_logic(text_content)
+        
+        # Cek Audio (Simulasi logika Top 20 untuk input user)
         user_audio_choice = raw_features.get('audio_type', 'Audio Lainnya') 
         
+        # 2. Bangun Dictionary Fitur Dasar (Sesuai Langkah 4B & 4C)
         features = {
             'Jam_Posting': raw_features.get('upload_hour', 12),
+            # Is_Weekend: 1 jika Sabtu/Minggu. Input 'upload_day' (0-6) -> 5=Sabtu, 6=Minggu
             'Is_Weekend': 1 if raw_features.get('upload_day', 0) in [5, 6] else 0,
             'Panjang_Caption': raw_features.get('caption_length', 0),
             'Jumlah_Hashtag': raw_features.get('hashtag_count', 0),
-            'Suka': raw_features.get('likes', 0),
+            'Suka': raw_features.get('likes', 0), # Penting untuk interaksi
+            
+            # Jika model butuh fitur lain yg ada di notebook tapi tidak di input form, beri default 0
+            # Contoh: 'Durasi_Video' (jika ada di model, meski di Langkah 4 notebook tidak eksplisit disebut direkayasa, biasanya tetap dipakai)
             'Durasi_Video': raw_features.get('duration', 0)
         }
 
+        # 3. One-Hot Encoding (Langkah 4D: Prefix 'Kat_' dan 'Audio_')
+        
+        # List semua kategori di notebook (termasuk 'Lainnya')
         all_categories = list(self.KAMUS_KATEGORI.keys()) + ['Lainnya']
         for cat in all_categories:
-            features[f"Kat_{cat}"] = 1 if detected_category == cat else 0
+            # Nama kolom harus 'Kat_Gaming', 'Kat_Fashion', dll.
+            col_name = f"Kat_{cat}"
+            features[col_name] = 1 if detected_category == cat else 0
             
+        # List tipe audio
         all_audios = ['Audio Original', 'Audio Populer', 'Audio Lainnya']
         for audio in all_audios:
-            features[f"Audio_{audio}"] = 1 if user_audio_choice == audio else 0
+            # Nama kolom harus 'Audio_Audio Original', dll.
+            col_name = f"Audio_{audio}"
+            features[col_name] = 1 if user_audio_choice == audio else 0
 
+        # 4. Fitur Interaksi (Langkah 4E: Interaksi_{Kategori}_Suka)
+        # Notebook: df_encoded[f'Interaksi_{nama_kat}_Suka'] = df_encoded[col] * df_encoded['Suka']
+        
         suka_val = features['Suka']
+        
         for cat in all_categories:
-            features[f"Interaksi_{cat}_Suka"] = features[f"Kat_{cat}"] * suka_val
+            cat_col_name = f"Kat_{cat}" # Kolom One-Hot yg sudah dibuat
+            interaksi_col_name = f"Interaksi_{cat}_Suka" # Nama Kolom Interaksi Baru
+            
+            # Nilai Interaksi = (1 atau 0) * Jumlah Suka
+            features[interaksi_col_name] = features[cat_col_name] * suka_val
 
         return pd.DataFrame([features])
 
-# --- INSTANCE HANDLER (Force Reload Support) ---
+# --- INSTANCE HANDLER (Updated: Support Force Reload) ---
 _data_processor = None
 
 def get_data_processor(force_reload=False):
