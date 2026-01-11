@@ -1,7 +1,7 @@
 """
 Data Processor Module
 Handles loading, preprocessing, and optimized classification of TikTok data
-(Final Version: Updated Audio Logic Sync with Notebook)
+(Final Robust Version: Singleton Destruction Mechanism)
 """
 import pandas as pd
 import numpy as np
@@ -13,9 +13,16 @@ class DataProcessor:
     """Handle data loading and preprocessing"""
 
     def __init__(self):
-        # Gunakan Absolute Path untuk keamanan lokasi file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.data_path = os.path.join(os.path.dirname(current_dir), 'data', 'dataset_tiktok.csv')
+        # CARA PATH YANG LEBIH KUAT
+        # Ini mencari folder di mana file ini (data_processor.py) berada
+        utils_dir = os.path.dirname(os.path.abspath(__file__)) 
+        # Naik satu level ke root project
+        root_dir = os.path.dirname(utils_dir)
+        # Masuk ke folder data
+        self.data_path = os.path.join(root_dir, 'data', 'dataset_tiktok.csv')
+        
+        # Print path ke terminal (agar bisa dicek di layar hitam cmd/terminal)
+        print(f"DEBUG PATH: {self.data_path}")
         
         self.df = None
         self.list_audio_populer = [] 
@@ -27,7 +34,7 @@ class DataProcessor:
             'Sunday': 'Minggu'
         }
 
-        # Kamus 10 Kategori Lengkap
+        # Kamus 10 Kategori
         self.KAMUS_KATEGORI = {
             'Gaming': ['game', 'genshin', 'impact', 'honkai', 'star', 'rail', 'mlbb', 'mobile', 'legend', 'esport', 'roblox', 'minecraft', 'valorant', 'win', 'lose', 'victory'],
             'Fashion': ['ootd', 'outfit', 'baju', 'hijab', 'gamis', 'dress', 'style', 'kain', 'batik', 'kebaya', 'jeans', 'haul', 'shopee', 'tas', 'sepatu'],
@@ -42,19 +49,17 @@ class DataProcessor:
         }
 
     def load_data(self):
-        """
-        Membaca data dari CSV.
-        PENTING: Selalu membaca ulang dari disk (pd.read_csv) untuk menangkap data baru.
-        """
         try:
             if not os.path.exists(self.data_path):
                 print(f"❌ Error: File tidak ditemukan di {self.data_path}")
                 return None
 
-            # [KUNCI PERBAIKAN] Selalu baca baru dari file CSV.
+            # [DEBUG] Baca Raw Data
             df = pd.read_csv(self.data_path)
+            total_awal = len(df)
+            print(f"📊 [DEBUG] Total baris mentah di CSV: {total_awal}")
 
-            # --- 1. CLEANING & TYPE CONVERSION ---
+            # --- 1. CLEANING ---
             numeric_cols = ['diggCount', 'commentCount', 'shareCount', 'playCount', 'videoMeta.duration']
             for col in numeric_cols:
                 if col in df.columns:
@@ -62,55 +67,63 @@ class DataProcessor:
                 else:
                     df[col] = 0
 
-            # --- 2. CALCULATED METRICS ---
+            # --- 2. METRICS ---
             df['engagement_rate'] = (
                 (df['diggCount'] + df['commentCount'] + df['shareCount']) /
                 df['playCount'].replace(0, 1)
             ) * 100
 
-            # --- 3. TIME PARSING ---
+            # --- 3. TIME PARSING (TITIK KRITIS) ---
+            # Kita konversi tanggal. Yang gagal jadi NaT (Not a Time)
             df['createTimeISO'] = pd.to_datetime(df['createTimeISO'], errors='coerce')
+            
+            # [DEBUG] Cek berapa yang NaT (Rusak)
+            baris_rusak = df[df['createTimeISO'].isna()]
+            if not baris_rusak.empty:
+                print(f"⚠️ [WARNING] Ada {len(baris_rusak)} baris dengan tanggal rusak/kosong yang akan DIHAPUS!")
+                # Tampilkan contoh data yang rusak di Terminal
+                print("   Contoh data rusak:")
+                print(baris_rusak.head(1).to_string())
+
+            # Hapus yang rusak
             df = df.dropna(subset=['createTimeISO']) 
 
-            df['Waktu Posting'] = df['createTimeISO']
+            # ... (Sisa kode sama: Waktu_Posting, Upload Day, dll) ...
+            df['Waktu_Posting'] = df['createTimeISO']
             df['upload_date'] = df['createTimeISO'].dt.date
             df['upload_hour'] = df['createTimeISO'].dt.hour
-            df['Jam Posting'] = df['createTimeISO'].dt.hour 
+            df['Jam_Posting'] = df['createTimeISO'].dt.hour 
             
             df['upload_day_english'] = df['createTimeISO'].dt.day_name()
             df['upload_day'] = df['upload_day_english'].map(self.day_mapping)
-            df['Hari Posting'] = df['upload_day_english'] 
+            df['Hari_Posting'] = df['upload_day_english'] 
             df['upload_year'] = df['createTimeISO'].dt.year
             df['upload_month'] = df['createTimeISO'].dt.month_name()
-
-            df['Is_Weekend'] = df['Hari Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
-
-            # --- 4. TEXT & CATEGORY ---
-            df['Panjang Caption'] = df['text'].astype(str).apply(len)
-            df['Jumlah Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
+            df['Is_Weekend'] = df['Hari_Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
             
+            # --- 4. TEXT & CATEGORY ---
+            df['Panjang_Caption'] = df['text'].astype(str).apply(len)
+            df['Jumlah_Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
             df['content_type'] = df['text'].apply(self._classify_content_logic)
-            df['Kategori Konten'] = df['content_type']
+            df['Kategori_Konten'] = df['content_type']
 
-            # --- 5. AUDIO (UPDATED LOGIC) ---
+            # --- 5. AUDIO ---
             if 'musicMeta.musicName' in df.columns:
-                # Ambil Top 20 Lagu Terpopuler dari data saat ini
                 self.list_audio_populer = df['musicMeta.musicName'].value_counts().head(20).index.tolist()
             
             df['audio_type'] = df.apply(self._classify_audio_logic, axis=1)
-            df['Tipe Audio'] = df['audio_type']
+            df['Tipe_Audio'] = df['audio_type']
 
-            # Jika semua berhasil, baru simpan ke variable class
             self.df = df
-            print(f"✅ Data loaded successfully: {len(self.df)} records.")
+            print(f"✅ [SUCCESS] Data bersih yang dimuat: {len(self.df)} baris. (Selisih: {total_awal - len(self.df)})")
             return self.df
 
         except Exception as e:
             print(f"❌ Error loading data: {str(e)}")
             self.df = None
             return None
-
-    # --- HELPER METHODS (Optimized Logic) ---
+        
+    # --- HELPER METHODS ---
     def _classify_content_logic(self, text):
         if pd.isna(text): return 'Lainnya'
         text_lower = str(text).lower()
@@ -119,44 +132,31 @@ class DataProcessor:
         return 'Lainnya'
 
     def _classify_audio_logic(self, row):
-        """
-        Logika Klasifikasi Audio (DIPERBAIKI)
-        Prioritas: 
-        1. Cek Kosong (NaN/Empty String) -> 'Tanpa Audio'
-        2. Cek Original -> 'Audio Original'
-        3. Cek Populer -> 'Audio Populer'
-        4. Sisanya -> 'Audio Lainnya'
-        """
         music_name = row.get('musicMeta.musicName', '')
         
-        # 1. HANDLING DATA KOSONG / NULL (Prioritas Tertinggi)
-        # Cek jika NaN, None, atau string kosong atau strip
-        if pd.isna(music_name) or str(music_name).strip() == '' or str(music_name).strip() == '-':
+        # 1. HANDLING KOSONG (Prioritas)
+        if pd.isna(music_name) or str(music_name).strip() in ['', '-', 'nan']:
             return 'Tanpa Audio'
             
         music_name_str = str(music_name)
         music_name_lower = music_name_str.lower()
         
-        # Cek literal 'tidak ada musik' atau 'no music'
-        if music_name_lower in ['tidak ada musik', 'no music', 'original sound', 'suara asli']:
-             # Jika 'original sound' tanpa nama artis, seringkali ini suara asli video (voiceover)
-             # Namun bisa juga 'Tanpa Audio' jika videonya hening. 
-             # Untuk aman, kita cek is_original flag di bawah.
-             pass
+        if music_name_lower in ['tidak ada musik', 'no music']:
+             return 'Tanpa Audio'
 
         is_original = row.get('musicMeta.musicOriginal', False)
         
-        # 2. LOGIKA AUDIO ORIGINAL
+        # 2. ORIGINAL
         if (str(is_original).lower() == 'true' or is_original == True) or \
            ('original sound' in music_name_lower) or \
            ('suara asli' in music_name_lower):
             return 'Audio Original'
         
-        # 3. LOGIKA AUDIO POPULER (Top 20)
+        # 3. POPULER
         elif music_name_str in self.list_audio_populer:
             return 'Audio Populer'
         
-        # 4. SISANYA
+        # 4. LAINNYA
         else:
             return 'Audio Lainnya'
 
@@ -227,15 +227,10 @@ class DataProcessor:
         return perf.sort_values(by='Rata-rata Tayangan', ascending=False)
 
     def get_audio_type_performance(self, df=None):
-        """
-        [FIXED] Mengembalikan DataFrame dengan Mean Views DAN Jumlah Video
-        """
         target_df = df if df is not None else self.df
         if target_df is None: return pd.DataFrame()
-        
         perf = target_df.groupby('audio_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
-        perf.columns = ['Rata-rata Tayangan', 'Jumlah Video'] # Rename kolom
-        
+        perf.columns = ['Rata-rata Tayangan', 'Jumlah Video'] 
         return perf.sort_values(by='Rata-rata Tayangan', ascending=False)
 
     def get_correlation_matrix(self, df=None):
@@ -249,23 +244,19 @@ class DataProcessor:
         if target_df is None: return pd.DataFrame()
         return target_df.nlargest(n, 'playCount')
 
-    # --- PREDICTION FEATURES (Sync with Notebook) ---
+    # --- PREDICTION FEATURES ---
     def prepare_features_for_prediction(self, raw_features):
         text_content = raw_features.get('text_content', '')
         detected_category = self._classify_content_logic(text_content)
-        
-        # Audio Classification for Input
-        # (Karena kita tidak punya list_audio_populer global dari data user input,
-        # kita andalkan input manual 'audio_type' dari form)
         user_audio_choice = raw_features.get('audio_type', 'Audio Lainnya') 
         
         features = {
-            'Jam Posting': raw_features.get('upload_hour', 12),
+            'Jam_Posting': raw_features.get('upload_hour', 12),
             'Is_Weekend': 1 if raw_features.get('upload_day', 0) in [5, 6] else 0,
-            'Panjang Caption': raw_features.get('caption_length', 0),
-            'Jumlah Hashtag': raw_features.get('hashtag_count', 0),
+            'Panjang_Caption': raw_features.get('caption_length', 0),
+            'Jumlah_Hashtag': raw_features.get('hashtag_count', 0),
             'Suka': raw_features.get('likes', 0),
-            'Durasi Video': raw_features.get('duration', 0)
+            'Durasi_Video': raw_features.get('duration', 0)
         }
 
         all_categories = list(self.KAMUS_KATEGORI.keys()) + ['Lainnya']
@@ -282,12 +273,22 @@ class DataProcessor:
 
         return pd.DataFrame([features])
 
-# --- INSTANCE HANDLER (Force Reload Support) ---
-_data_processor = None
+# --- GLOBAL INSTANCE MANAGEMENT (CRITICAL FIX) ---
+# Variable global ini menyimpan instance DataProcessor
+_data_processor_instance = None
 
 def get_data_processor(force_reload=False):
-    global _data_processor
-    if _data_processor is None or force_reload:
-        _data_processor = DataProcessor()
-        _data_processor.load_data()
-    return _data_processor
+    """
+    Mengambil atau membuat ulang DataProcessor.
+    Args:
+        force_reload (bool): Jika True, HANCURKAN instance lama dan buat baru.
+                             Ini WAJIB dipanggil setelah menyimpan data baru.
+    """
+    global _data_processor_instance
+    
+    if _data_processor_instance is None or force_reload:
+        print("🔄 [SYSTEM] Membuat Instance DataProcessor Baru...")
+        _data_processor_instance = DataProcessor()
+        _data_processor_instance.load_data()
+    
+    return _data_processor_instance

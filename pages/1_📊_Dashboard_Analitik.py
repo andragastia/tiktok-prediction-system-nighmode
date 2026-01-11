@@ -39,14 +39,37 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- DEBUGGING MODE (Bisa dihapus nanti) ---
-# st.warning("⚠️ DEBUG MODE: Menampilkan 5 Data Terakhir di Database")
-# try:
-#     df_debug = pd.read_csv('data/dataset_tiktok.csv')
-#     st.dataframe(df_debug.tail(5)) 
-# except Exception as e:
-#     st.error(f"Gagal membaca file: {e}")
-# -------------------------------------------
+# --- 🛑 AREA DEBUGGING (Hapus nanti jika sudah fix) ---
+import os
+import time
+
+st.error("🚧 MODE DEBUG AKTIF")
+
+# 1. Cek Lokasi File yang Dibaca DataProcessor
+dp_debug = get_data_processor()
+file_path = dp_debug.data_path
+
+st.write(f"📂 **Lokasi File Database:** `{file_path}`")
+
+# 2. Cek Apakah File Benar-benar Ada & Kapan Terakhir Berubah
+if os.path.exists(file_path):
+    last_modified = os.path.getmtime(file_path)
+    last_mod_time = time.ctime(last_modified)
+    file_size = os.path.getsize(file_path)
+    st.write(f"🕒 **Terakhir Diupdate (di Disk):** {last_mod_time}")
+    st.write(f"📦 **Ukuran File:** {file_size} bytes")
+    
+    # 3. Baca Langsung Tanpa Class (Raw Read)
+    df_check = pd.read_csv(file_path)
+    st.write(f"🔢 **Total Baris Real di CSV:** {len(df_check)}")
+    
+    # 4. Cek 3 Data Terakhir (Apakah inputan anda masuk?)
+    st.write("📋 **3 Data Terakhir di CSV:**")
+    st.dataframe(df_check.tail(3))
+else:
+    st.error("❌ FILE CSV TIDAK DITEMUKAN DI PATH TERSEBUT!")
+
+st.markdown("---")
 
 # Load data
 @st.cache_data(ttl=0) # TTL=0 agar tidak cache terlalu lama (UPDATE)

@@ -1,7 +1,7 @@
 """
 Input Data Baru Page
 Menambahkan data video baru ke dataset secara manual
-(Updated: Added Cache Clearing Mechanism)
+(Updated: Trigger Global Reload)
 """
 import streamlit as st
 import pandas as pd
@@ -23,7 +23,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load Data Processor
+# Load Data Processor (Initial Load)
 dp = get_data_processor()
 
 # Header
@@ -69,7 +69,7 @@ with st.form("input_data_form", clear_on_submit=True):
     st.markdown("---")
     submitted = st.form_submit_button("💾 Simpan Data", type="primary", use_container_width=True)
 
-# --- LOGIKA PENYIMPANAN (UPDATED WITH CACHE CLEAR) ---
+# --- LOGIKA PENYIMPANAN ---
 if submitted:
     if not author_name or not text_caption:
         st.error("❌ Nama Akun dan Caption wajib diisi!")
@@ -106,23 +106,24 @@ if submitted:
             # 3. Simpan ke File (Overwrite file lama)
             updated_df.to_csv(dp.data_path, index=False)
             
-            # --- [SOLUSI INTI] BERSIHKAN CACHE & MEMORI ---
-            # 1. Hapus cache data Streamlit (agar dashboard membaca file baru)
+            # --- [SOLUSI FINAL] HANCURKAN ZOMBIE ---
+            # 1. Hapus Cache Streamlit (View Cache)
             st.cache_data.clear()
             
-            # 2. Reset instance DataProcessor (agar tidak pegang data lama)
-            dp.df = None 
+            # 2. Hancurkan Instance DataProcessor Lama & Buat Baru (Data Cache)
+            # Ini akan memaksa pembacaan ulang CSV di memori server
+            get_data_processor(force_reload=True) 
             
-            # 3. Set sinyal untuk Dashboard
+            # 3. Set sinyal untuk Dashboard agar refresh diri
             st.session_state["data_changed"] = True
-            # ----------------------------------------------
+            # ---------------------------------------
 
             st.success(f"✅ Data berhasil disimpan! (Total Data: {len(updated_df)})")
             
             with st.expander("👁️ Lihat Data Inputan"):
                 st.dataframe(pd.DataFrame([new_data]))
             
-            st.info("🔄 Cache sistem telah dibersihkan. Dashboard akan memuat data terbaru.")
+            st.info("🔄 Sistem telah diperbarui. Silakan buka Dashboard.")
 
         except Exception as e:
             st.error(f"Gagal menyimpan: {e}")
