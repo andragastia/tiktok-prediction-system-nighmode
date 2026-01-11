@@ -26,7 +26,7 @@ st.set_page_config(
 )
 
 # Header
-st.title("📤 Prediksi Massal (Batch Prediction)")
+st.title("📤 Prediksi Massal")
 st.markdown("Upload file CSV untuk memprediksi potensi *Trending* banyak video sekaligus.")
 
 # Load model

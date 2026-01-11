@@ -20,13 +20,13 @@ from utils.data_processor import get_data_processor
 
 # Page config
 st.set_page_config(
-    page_title="Data Preprocessing - Sistem Prediksi TikTok",
+    page_title="Preproses Data - Untuk Prediksi Massal",
     page_icon="🔧",
     layout="wide"
 )
 
 # Header
-st.title("🔧 Preprocessing Data TikTok")
+st.title("🔧 Preproses Data")
 st.markdown("Konversi data mentah dari FreeTikTokScraper menjadi format siap prediksi yang kompatibel dengan Model ML terbaru.")
 
 st.markdown("---")

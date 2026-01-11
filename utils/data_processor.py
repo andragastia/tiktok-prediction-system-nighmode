@@ -1,7 +1,7 @@
 """
 Data Processor Module
 Handles loading, preprocessing, and optimized classification of TikTok data
-(Final Version: Audio Analysis Fix + 10 Categories + Force Reload)
+(Final Version: Updated Audio Logic Sync with Notebook)
 """
 import pandas as pd
 import numpy as np
@@ -32,12 +32,12 @@ class DataProcessor:
             'Gaming': ['game', 'genshin', 'impact', 'honkai', 'star', 'rail', 'mlbb', 'mobile', 'legend', 'esport', 'roblox', 'minecraft', 'valorant', 'win', 'lose', 'victory'],
             'Fashion': ['ootd', 'outfit', 'baju', 'hijab', 'gamis', 'dress', 'style', 'kain', 'batik', 'kebaya', 'jeans', 'haul', 'shopee', 'tas', 'sepatu'],
             'Daily': ['vlog', 'day', 'life', 'hari', 'jalan', 'trip', 'healing', 'cerita', 'kegiatan', 'minivlog', 'daily', 'routine', 'morning', 'kucing'],
-            'Edukasi': ['magang', 'intern', 'kuliah', 'skripsi', 'belajar', 'tips', 'ilmu', 'kerja', 'karir', 'coding', 'tutorial', 'cara', 'kampus', 'mahasiswa'],
+            'Edukasi_Karir': ['magang', 'intern', 'kuliah', 'skripsi', 'belajar', 'tips', 'ilmu', 'kerja', 'karir', 'coding', 'tutorial', 'cara', 'kampus', 'mahasiswa'],
             'Religi': ['hijrah', 'kajian', 'islam', 'allah', 'doa', 'sholat', 'ramadan', 'ngaji', 'ustadz', 'dakwah', 'lebaran', 'puasa', 'muslim'],
             'Beauty': ['makeup', 'skincare', 'cantik', 'jerawat', 'lip', 'serum', 'sunscreen', 'foundation', 'bedak', 'glowing', 'acne', 'tutorialmakeup'],
             'Kuliner': ['makan', 'masak', 'resep', 'enak', 'kuliner', 'food', 'minum', 'jajan', 'mukbang', 'cook', 'cafe', 'coffee', 'mie', 'bakso'],
             'Hiburan': ['lucu', 'ngakak', 'komedi', 'prank', 'drama', 'meme', 'viral', 'fyp', 'pov', 'parodi', 'receh', 'ketawa', 'film', 'drakor'],
-            'Musik Konser': ['concert', 'konser', 'tour', 'ticket', 'stage', 'live', 'band', 'singer', 'lagu', 'music', 'musik', 'guitar', 'piano'],
+            'Musik_Konser': ['concert', 'konser', 'tour', 'ticket', 'stage', 'live', 'band', 'singer', 'lagu', 'music', 'musik', 'guitar', 'piano'],
             'Jedag Jedug': ['capcut', 'jedag', 'jedug', 'preset', 'alight', 'motion', 'jj', 'template']
         }
 
@@ -72,32 +72,33 @@ class DataProcessor:
             df['createTimeISO'] = pd.to_datetime(df['createTimeISO'], errors='coerce')
             df = df.dropna(subset=['createTimeISO']) 
 
-            df['Waktu_Posting'] = df['createTimeISO']
+            df['Waktu Posting'] = df['createTimeISO']
             df['upload_date'] = df['createTimeISO'].dt.date
             df['upload_hour'] = df['createTimeISO'].dt.hour
-            df['Jam_Posting'] = df['createTimeISO'].dt.hour 
+            df['Jam Posting'] = df['createTimeISO'].dt.hour 
             
             df['upload_day_english'] = df['createTimeISO'].dt.day_name()
             df['upload_day'] = df['upload_day_english'].map(self.day_mapping)
-            df['Hari_Posting'] = df['upload_day_english'] 
+            df['Hari Posting'] = df['upload_day_english'] 
             df['upload_year'] = df['createTimeISO'].dt.year
             df['upload_month'] = df['createTimeISO'].dt.month_name()
 
-            df['Is_Weekend'] = df['Hari_Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
+            df['Is_Weekend'] = df['Hari Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
 
             # --- 4. TEXT & CATEGORY ---
-            df['Panjang_Caption'] = df['text'].astype(str).apply(len)
-            df['Jumlah_Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
+            df['Panjang Caption'] = df['text'].astype(str).apply(len)
+            df['Jumlah Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
             
             df['content_type'] = df['text'].apply(self._classify_content_logic)
-            df['Kategori_Konten'] = df['content_type']
+            df['Kategori Konten'] = df['content_type']
 
-            # --- 5. AUDIO ---
+            # --- 5. AUDIO (UPDATED LOGIC) ---
             if 'musicMeta.musicName' in df.columns:
+                # Ambil Top 20 Lagu Terpopuler dari data saat ini
                 self.list_audio_populer = df['musicMeta.musicName'].value_counts().head(20).index.tolist()
             
             df['audio_type'] = df.apply(self._classify_audio_logic, axis=1)
-            df['Tipe_Audio'] = df['audio_type']
+            df['Tipe Audio'] = df['audio_type']
 
             # Jika semua berhasil, baru simpan ke variable class
             self.df = df
@@ -109,7 +110,7 @@ class DataProcessor:
             self.df = None
             return None
 
-    # --- HELPER METHODS ---
+    # --- HELPER METHODS (Optimized Logic) ---
     def _classify_content_logic(self, text):
         if pd.isna(text): return 'Lainnya'
         text_lower = str(text).lower()
@@ -118,11 +119,46 @@ class DataProcessor:
         return 'Lainnya'
 
     def _classify_audio_logic(self, row):
+        """
+        Logika Klasifikasi Audio (DIPERBAIKI)
+        Prioritas: 
+        1. Cek Kosong (NaN/Empty String) -> 'Tanpa Audio'
+        2. Cek Original -> 'Audio Original'
+        3. Cek Populer -> 'Audio Populer'
+        4. Sisanya -> 'Audio Lainnya'
+        """
         music_name = row.get('musicMeta.musicName', '')
+        
+        # 1. HANDLING DATA KOSONG / NULL (Prioritas Tertinggi)
+        # Cek jika NaN, None, atau string kosong atau strip
+        if pd.isna(music_name) or str(music_name).strip() == '' or str(music_name).strip() == '-':
+            return 'Tanpa Audio'
+            
+        music_name_str = str(music_name)
+        music_name_lower = music_name_str.lower()
+        
+        # Cek literal 'tidak ada musik' atau 'no music'
+        if music_name_lower in ['tidak ada musik', 'no music', 'original sound', 'suara asli']:
+             # Jika 'original sound' tanpa nama artis, seringkali ini suara asli video (voiceover)
+             # Namun bisa juga 'Tanpa Audio' jika videonya hening. 
+             # Untuk aman, kita cek is_original flag di bawah.
+             pass
+
         is_original = row.get('musicMeta.musicOriginal', False)
-        if str(is_original).lower() == 'true' or is_original == True: return 'Audio Original'
-        elif music_name in self.list_audio_populer: return 'Audio Populer'
-        else: return 'Tanpa Audio'
+        
+        # 2. LOGIKA AUDIO ORIGINAL
+        if (str(is_original).lower() == 'true' or is_original == True) or \
+           ('original sound' in music_name_lower) or \
+           ('suara asli' in music_name_lower):
+            return 'Audio Original'
+        
+        # 3. LOGIKA AUDIO POPULER (Top 20)
+        elif music_name_str in self.list_audio_populer:
+            return 'Audio Populer'
+        
+        # 4. SISANYA
+        else:
+            return 'Audio Lainnya'
 
     # --- DASHBOARD & STATS ---
     def get_unique_authors(self):
@@ -197,7 +233,6 @@ class DataProcessor:
         target_df = df if df is not None else self.df
         if target_df is None: return pd.DataFrame()
         
-        # PERBAIKAN: Menggunakan .agg untuk mengambil mean playCount dan count video
         perf = target_df.groupby('audio_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
         perf.columns = ['Rata-rata Tayangan', 'Jumlah Video'] # Rename kolom
         
@@ -214,26 +249,30 @@ class DataProcessor:
         if target_df is None: return pd.DataFrame()
         return target_df.nlargest(n, 'playCount')
 
-    # --- PREDICTION FEATURES ---
+    # --- PREDICTION FEATURES (Sync with Notebook) ---
     def prepare_features_for_prediction(self, raw_features):
         text_content = raw_features.get('text_content', '')
         detected_category = self._classify_content_logic(text_content)
+        
+        # Audio Classification for Input
+        # (Karena kita tidak punya list_audio_populer global dari data user input,
+        # kita andalkan input manual 'audio_type' dari form)
         user_audio_choice = raw_features.get('audio_type', 'Audio Lainnya') 
         
         features = {
-            'Jam_Posting': raw_features.get('upload_hour', 12),
+            'Jam Posting': raw_features.get('upload_hour', 12),
             'Is_Weekend': 1 if raw_features.get('upload_day', 0) in [5, 6] else 0,
-            'Panjang_Caption': raw_features.get('caption_length', 0),
-            'Jumlah_Hashtag': raw_features.get('hashtag_count', 0),
+            'Panjang Caption': raw_features.get('caption_length', 0),
+            'Jumlah Hashtag': raw_features.get('hashtag_count', 0),
             'Suka': raw_features.get('likes', 0),
-            'Durasi_Video': raw_features.get('duration', 0)
+            'Durasi Video': raw_features.get('duration', 0)
         }
 
         all_categories = list(self.KAMUS_KATEGORI.keys()) + ['Lainnya']
         for cat in all_categories:
             features[f"Kat_{cat}"] = 1 if detected_category == cat else 0
             
-        all_audios = ['Audio Original', 'Audio Populer', 'Audio Lainnya']
+        all_audios = ['Audio Original', 'Audio Populer', 'Audio Lainnya', 'Tanpa Audio']
         for audio in all_audios:
             features[f"Audio_{audio}"] = 1 if user_audio_choice == audio else 0
 
