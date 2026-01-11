@@ -1,7 +1,7 @@
 """
 Analytics Dashboard Page
 Comprehensive analytics and insights for TikTok content performance
-(Updated: Multi-Influencer Support & Leaderboard & Auto-Reload)
+(Updated: Multi-Kreator Support & Leaderboard & Auto-Reload)
 """
 import streamlit as st
 import pandas as pd
@@ -68,27 +68,27 @@ if dp.df is None or dp.df.empty:
     st.error("❌ Data tidak ditemukan atau kosong. Silakan input data terlebih dahulu.")
     st.stop()
 
-# --- SIDEBAR FILTERS (UPDATE: INFLUENCER FILTER) ---
+# --- SIDEBAR FILTERS (UPDATE: Kreator FILTER) ---
 st.sidebar.header("🔧 Filter Data")
 
-# [FITUR BARU] 1. Filter Influencer
+# [FITUR BARU] 1. Filter Kreator
 unique_authors = dp.get_unique_authors()
 selected_author = st.sidebar.selectbox(
-    "Pilih Akun Influencer:",
-    ["Semua Influencer"] + unique_authors
+    "Pilih Akun Kreator:",
+    ["Semua Kreator"] + unique_authors
 )
 
 # Header Dinamis
 st.title("📊 Dashboard Analitik Performa Konten")
-if selected_author == "Semua Influencer":
-    st.markdown("Analisis mendalam performa konten **Semua Influencer**")
+if selected_author == "Semua Kreator":
+    st.markdown("Analisis mendalam performa konten **Semua Kreator**")
 else:
     st.markdown(f"Analisis mendalam performa konten akun **@{selected_author}**")
 
 
 # [UPDATE LOGIKA DATA]
 # Kita filter data mentah (raw_data) DULUAN sebelum masuk ke filter tanggal
-if selected_author != "Semua Influencer":
+if selected_author != "Semua Kreator":
     base_df = data['raw_data'][data['raw_data']['authorMeta.name'] == selected_author].copy()
 else:
     base_df = data['raw_data'].copy()
@@ -223,10 +223,10 @@ with col4:
 st.markdown("---")
 
 # ==================== [FITUR BARU] LEADERBOARD ====================
-# Hanya muncul jika memilih "Semua Influencer"
-if selected_author == "Semua Influencer":
-    st.header("🏆 Peringkat Influencer (Leaderboard)")
-    st.info("Membandingkan performa influencer berdasarkan total tayangan.")
+# Hanya muncul jika memilih "Semua Kreator"
+if selected_author == "Semua Kreator":
+    st.header("🏆 Peringkat Kreator")
+    st.info("Membandingkan performa Kreator berdasarkan total tayangan.")
     
     # Ambil leaderboard dari DataProcessor
     leaderboard_df = dp.get_leaderboard()
@@ -270,7 +270,7 @@ if not filtered_df.empty:
         day_perf = dp.get_performance_by_day(filtered_df).reset_index()
         day_perf = day_perf.rename(columns={'upload_day': 'Hari Upload', 'playCount': 'Rata-rata Tayangan'})
 
-        fig_day = create_bar_chart(day_perf, x='Hari Upload', y='Rata-rata Tayangan', title="Rerata Tayangan per Hari", xaxis_title="Hari", yaxis_title="Views")
+        fig_day = create_bar_chart(day_perf, x='Hari Upload', y='Rata-rata Tayangan', title="Rerata Tayangan per Hari", xaxis_title="Hari", yaxis_title="Tayangan")
         st.plotly_chart(fig_day, use_container_width=True)
         
         # Insight
@@ -283,7 +283,7 @@ if not filtered_df.empty:
         hour_perf = dp.get_performance_by_hour(filtered_df).reset_index()
         hour_perf = hour_perf.rename(columns={'upload_hour': 'Jam Upload', 'playCount': 'Rata-rata Tayangan'})
 
-        fig_hour = create_line_chart(hour_perf, x='Jam Upload', y='Rata-rata Tayangan', title="Rerata Tayangan per Jam", xaxis_title="Jam", yaxis_title="Views")
+        fig_hour = create_line_chart(hour_perf, x='Jam Upload', y='Rata-rata Tayangan', title="Rerata Tayangan per Jam", xaxis_title="Jam", yaxis_title="Tayangan")
         st.plotly_chart(fig_hour, use_container_width=True)
         
         if not hour_perf.empty:
@@ -324,7 +324,7 @@ if not content_type_perf.empty:
 
     with col2:
         st.subheader("⭐ Performa per Tipe Konten")
-        fig_content_bar = create_bar_chart(content_dist, x='Tipe Konten', y='Rata-rata Tayangan', title="Rerata Tayangan per Tipe", xaxis_title="Kategori", yaxis_title="Views")
+        fig_content_bar = create_bar_chart(content_dist, x='Tipe Konten', y='Rata-rata Tayangan', title="Rerata Tayangan per Tipe", xaxis_title="Kategori", yaxis_title="Tayangan")
         st.plotly_chart(fig_content_bar, use_container_width=True)
 
     # Insight
@@ -365,7 +365,7 @@ if not audio_type_perf.empty:
 
     with col2:
         st.subheader("⭐ Performa per Jenis Audio")
-        fig_audio_bar = create_bar_chart(audio_dist, x='Jenis Audio', y='Rata-rata Tayangan', title="Efektivitas Audio", xaxis_title="Jenis", yaxis_title="Views")
+        fig_audio_bar = create_bar_chart(audio_dist, x='Jenis Audio', y='Rata-rata Tayangan', title="Efektivitas Audio", xaxis_title="Jenis", yaxis_title="Tayangan")
         st.plotly_chart(fig_audio_bar, use_container_width=True)
     
     if not audio_dist.empty:
@@ -379,7 +379,7 @@ st.markdown("---")
 # ==================== TOP PERFORMERS ====================
 st.header("🏆 Video dengan Performa Terbaik")
 
-tab1, tab2, tab3 = st.tabs(["📈 Top by Views", "❤️ Top by Likes", "💬 Top by Comments"])
+tab1, tab2, tab3 = st.tabs(["📈 Berdasarkan Tayangan", "❤️ Berdasarkan Suka", "💬 Berdasarkan Komen"])
 
 if not filtered_df.empty:
     with tab1:

@@ -23,7 +23,7 @@ dp.load_data()
 
 # --- HEADER UTAMA ---
 st.title("🎯 Sistem Prediksi Performa Konten TikTok")
-st.markdown('<div class="sub-header">Platform Analitik dan Prediksi untuk Kreator Konten (Multi-Influencer)</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Platform Analitik dan Prediksi untuk Para Kreator</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -41,7 +41,7 @@ with col1:
 
     ### 🎨 Fitur Utama:
 
-    **1. 📊 Dasbor Analitik (*Analytics Dashboard*)**
+    **1. 📊 Dasbor Analitik**
     - Analisis performa konten secara komprehensif dari berbagai *influencer*.
     - Visualisasi pola keterlibatan (*engagement*) dan tren.
     - Peringkat performa (*Leaderboard*) kreator konten.
@@ -51,22 +51,23 @@ with col1:
     - Skor kepercayaan (*confidence score*) dan analisis kepentingan fitur.
     - Rekomendasi strategi konten berdasarkan hasil prediksi.
 
-    **3. 📝 Input Data Baru**
-    - Tambahkan data video baru secara manual untuk memperkaya basis data.
-    - Pembaruan sistem secara langsung (*real-time*).
-
-    **4. 🔧 Pra-pemrosesan Data (*Data Preprocessing*)** - Konversi otomatis data mentah.
+    **3. 🔧 Pra-pemrosesan Data**
     - Ekstraksi fitur untuk model *Machine Learning*.
     - Unduh data siap pakai.
 
-    **5. 📤 Prediksi Massal**
+    **4. 📤 Prediksi Massal**
     - Unggah CSV untuk prediksi banyak video sekaligus.
     - Perbandingan hasil prediksi vs aktual.
+                
+    **5. 📝 Input Data Baru**
+    - Tambahkan data video baru secara manual untuk memperkaya basis data.
+    - Pembaruan sistem secara langsung.
+
     """)
 
 with col2:
     st.info("""
-    **💡 Mulai Cepat (*Quick Start*)**
+    **💡 Mulai Cepat**
 
     **Ingin Menambah Data?**
     1. 📝 **Input Data Baru** - Masukkan data manual
