@@ -9,7 +9,17 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# --- MEKANISME RELOAD OTOMATIS (UPDATE PENTING) ---
+def format_indo(num):
+    """Format angka ke format Indonesia (Ribu, Juta, Miliar)"""
+    if num is None: return "0"
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.1f} miliar"
+    if num >= 1_000_000:
+        return f"{num/1_000_000:.1f} juta"
+    if num >= 1_000:
+        return f"{num/1_000:.1f} ribu"
+    return f"{num:,.0f}"
+
 # Kode ini mendeteksi sinyal dari halaman Input Data Baru
 if "data_changed" in st.session_state and st.session_state["data_changed"]:
     st.cache_data.clear()  # Hapus cache memori agar data baru terbaca
@@ -165,21 +175,21 @@ with col2:
     total_views = filtered_df['playCount'].sum()
     st.metric(
         label="Total Tayangan",
-        value=format_number(total_views),
+        value=format_indo(total_views),
     )
 
 with col3:
     total_likes = filtered_df['diggCount'].sum()
     st.metric(
         label="Total Suka",
-        value=format_number(total_likes),
+        value=format_indo(total_likes),
     )
 
 with col4:
     total_comments = filtered_df['commentCount'].sum()
     st.metric(
         label="Total Komentar",
-        value=format_number(total_comments),
+        value=format_indo(total_comments),
     )
 
 with col5:
@@ -196,21 +206,21 @@ with col1:
     avg_views = filtered_df['playCount'].mean() if not filtered_df.empty else 0
     st.metric(
         label="Rata-rata Tayangan",
-        value=format_number(avg_views)
+        value=format_indo(avg_views)
     )
 
 with col2:
     median_views = filtered_df['playCount'].median() if not filtered_df.empty else 0
     st.metric(
         label="Median Tayangan",
-        value=format_number(median_views)
+        value=format_indo(median_views)
     )
 
 with col3:
     best_video_views = filtered_df['playCount'].max() if not filtered_df.empty else 0
     st.metric(
         label="Video Terbaik",
-        value=format_number(best_video_views)
+        value=format_indo(best_video_views)
     )
 
 with col4:
@@ -331,7 +341,7 @@ if not content_type_perf.empty:
     if not content_dist.empty:
         best_content = content_dist.loc[content_dist['Rata-rata Tayangan'].idxmax(), 'Tipe Konten']
         best_content_views = content_dist['Rata-rata Tayangan'].max()
-        st.info(f"📌 **Tipe Konten Juara**: {best_content} (Avg. {format_number(best_content_views)} tayangan)")
+        st.info(f"📌 **Tipe Konten Juara**: {best_content} (Avg. {format_indo(best_content_views)} tayangan)")
 
     # Tabel Detail
     st.subheader("📋 Detail Performa Tipe Konten")
@@ -346,20 +356,19 @@ st.markdown("---")
 
 # ==================== AUDIO TYPE ANALYSIS ====================
 st.header("🎵 Analisis Tipe Audio")
-
-# Hitung ulang berdasarkan filtered_df
-audio_type_perf = dp.get_audio_type_performance(filtered_df)
+# [FIXED] Fungsi ini sekarang mengembalikan 'Jumlah Video' dan 'Rata-rata Tayangan'
+audio_type_perf = dp.get_audio_type_performance(filtered_df) 
 
 if not audio_type_perf.empty:
     audio_dist = audio_type_perf.reset_index().rename(columns={
-        'audio_type': 'Jenis Audio', 
-        'video_count': 'Jumlah Video', 
-        'playCount_mean': 'Rata-rata Tayangan'
+        'audio_type': 'Jenis Audio' 
+        # Kolom 'Jumlah Video' dan 'Rata-rata Tayangan' sudah ada dari DataProcessor
     })
 
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📊 Distribusi Penggunaan Audio")
+        # [FIXED] Menggunakan kolom 'Jumlah Video' yang sekarang sudah pasti ada
         fig_audio_pie = create_pie_chart(values=audio_dist['Jumlah Video'], names=audio_dist['Jenis Audio'], title="Proporsi Audio", hole=0.4)
         st.plotly_chart(fig_audio_pie, use_container_width=True)
 
