@@ -1,7 +1,7 @@
 """
 Input Data Baru Page
 Menambahkan data video baru ke dataset secara manual
-(Updated: Trigger Global Reload)
+(Final Fix: Safe Append Mode & Robust Column Alignment)
 """
 import streamlit as st
 import pandas as pd
@@ -23,12 +23,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load Data Processor (Initial Load)
+# Load Data Processor
+# (Hanya load instance, tidak perlu force reload di awal)
 dp = get_data_processor()
 
 # Header
 st.title("📝 Input Data Video Baru")
-st.markdown("Tambahkan data video baru ke dataset. Data akan otomatis muncul di Dashboard.")
+st.markdown("Tambahkan data video baru ke dataset. Data akan otomatis disesuaikan dengan struktur database.")
 
 st.markdown("---")
 
@@ -36,10 +37,15 @@ st.markdown("---")
 st.subheader("1. Identitas & Konten")
 
 # Pilihan Akun
-existing_authors = dp.get_unique_authors()
+# Gunakan try-except untuk handle jika dp.df masih kosong
+try:
+    existing_authors = dp.get_unique_authors()
+except:
+    existing_authors = []
+
 author_mode = st.radio("Akun Influencer:", ["Pilih Akun Lama", "Akun Baru"], horizontal=True)
 
-if author_mode == "Pilih Akun Lama":
+if author_mode == "Pilih Akun Lama" and existing_authors:
     author_name = st.selectbox("Nama Akun", options=existing_authors)
 else:
     author_name = st.text_input("Nama Akun Baru (tanpa @)", placeholder="contoh: tiktok_creator")
@@ -69,17 +75,36 @@ with st.form("input_data_form", clear_on_submit=True):
     st.markdown("---")
     submitted = st.form_submit_button("💾 Simpan Data", type="primary", use_container_width=True)
 
-# --- LOGIKA PENYIMPANAN ---
+# --- LOGIKA PENYIMPANAN AMAN (CORE FIX) ---
 if submitted:
     if not author_name or not text_caption:
         st.error("❌ Nama Akun dan Caption wajib diisi!")
     else:
         try:
-            # 1. Siapkan Data Baru
-            create_time_iso = datetime.combine(upload_date, upload_time).isoformat()
+            # 1. Format Tanggal Standard (YYYY-MM-DD HH:MM:SS)
+            # Format string ini sangat aman dan mudah dibaca oleh Pandas
+            dt_obj = datetime.combine(upload_date, upload_time)
+            create_time_str = dt_obj.strftime("%Y-%m-%d %H:%M:%S") 
+            
             is_original_audio = True if audio_type == "Audio Original" else False
             
-            new_data = {
+            # 2. Pastikan File Ada & Baca Header
+            # Kita hanya butuh header (baris pertama) untuk menyamakan kolom
+            if os.path.exists(dp.data_path):
+                # Baca 1 baris saja untuk efisiensi
+                df_header = pd.read_csv(dp.data_path, nrows=1)
+                existing_columns = df_header.columns.tolist()
+            else:
+                st.error("Database (dataset_tiktok.csv) tidak ditemukan!")
+                st.stop()
+
+            # 3. Buat DataFrame Baru dengan Struktur Kolom yang SAMA PERSIS
+            # Ini mencegah kolom bergeser atau hilang
+            new_row = pd.DataFrame(columns=existing_columns)
+            new_row.loc[0] = np.nan # Inisialisasi baris kosong
+
+            # 4. Mapping Data Input ke Kolom CSV
+            data_map = {
                 'text': text_caption,
                 'diggCount': digg_count,
                 'shareCount': share_count,
@@ -88,44 +113,45 @@ if submitted:
                 'videoMeta.duration': duration,
                 'musicMeta.musicName': music_name_placeholder,
                 'musicMeta.musicOriginal': is_original_audio,
-                'createTimeISO': create_time_iso,
+                'createTimeISO': create_time_str, # Format tanggal aman
                 'webVideoUrl': video_url if video_url else f"manual_{int(datetime.now().timestamp())}",
-                'authorMeta.name': author_name
+                'authorMeta.name': author_name,
+                
+                # Isi kolom pelengkap agar tidak NaN (Penting!)
+                'authorMeta.nickName': author_name,
+                'authorMeta.verified': False,
+                'musicMeta.musicAuthor': 'Unknown',
+                'secretID': 'manual_input',
+                'videoMeta.height': 0,
+                'videoMeta.width': 0
             }
-            
-            # 2. Baca CSV Lama & Gabungkan
-            # Kita baca manual pakai pandas untuk memastikan append berhasil
-            if os.path.exists(dp.data_path):
-                current_df = pd.read_csv(dp.data_path)
-                new_row = pd.DataFrame([new_data])
-                # Gabung
-                updated_df = pd.concat([current_df, new_row], ignore_index=True)
-            else:
-                updated_df = pd.DataFrame([new_data])
-            
-            # 3. Simpan ke File (Overwrite file lama)
-            updated_df.to_csv(dp.data_path, index=False)
-            
-            # --- [SOLUSI FINAL] HANCURKAN ZOMBIE ---
-            # 1. Hapus Cache Streamlit (View Cache)
-            st.cache_data.clear()
-            
-            # 2. Hancurkan Instance DataProcessor Lama & Buat Baru (Data Cache)
-            # Ini akan memaksa pembacaan ulang CSV di memori server
-            get_data_processor(force_reload=True) 
-            
-            # 3. Set sinyal untuk Dashboard agar refresh diri
-            st.session_state["data_changed"] = True
-            # ---------------------------------------
 
-            st.success(f"✅ Data berhasil disimpan! (Total Data: {len(updated_df)})")
+            # Masukkan data ke dalam kolom yang sesuai
+            for col, val in data_map.items():
+                if col in new_row.columns:
+                    new_row.at[0, col] = val
+
+            # Isi kolom lain yang kosong dengan nilai default aman (0)
+            # Agar tidak dianggap baris rusak oleh DataProcessor
+            new_row = new_row.fillna(0) 
+
+            # 5. SIMPAN KE CSV (MODE APPEND)
+            # mode='a' : Tambahkan ke bawah
+            # header=False : Jangan tulis nama kolom lagi
+            new_row.to_csv(dp.data_path, mode='a', header=False, index=False)
             
-            with st.expander("👁️ Lihat Data Inputan"):
-                st.dataframe(pd.DataFrame([new_data]))
+            # 6. FORCE RELOAD & CLEAR CACHE
+            # Ini wajib agar Dashboard menyadari ada data baru
+            st.cache_data.clear()
+            get_data_processor(force_reload=True) # Reset instance global
+            st.session_state["data_changed"] = True # Sinyal ke Dashboard
             
-            st.info("🔄 Sistem telah diperbarui. Silakan buka Dashboard.")
+            st.success("✅ Berhasil! Data baru telah ditambahkan ke database.")
+            
+            with st.expander("👁️ Lihat Data yang Masuk"):
+                st.dataframe(new_row)
+                
+            st.info("🔄 Cache sistem telah dibersihkan. Dashboard akan memuat data terbaru.")
 
         except Exception as e:
-            st.error(f"Gagal menyimpan: {e}")
-
-st.markdown("---")
+            st.error(f"Terjadi kesalahan saat menyimpan: {e}")

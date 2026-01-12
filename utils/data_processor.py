@@ -13,14 +13,21 @@ class DataProcessor:
     """Handle data loading and preprocessing"""
 
     def __init__(self):
-        # CARA PATH YANG LEBIH KUAT
-        # Ini mencari folder di mana file ini (data_processor.py) berada
-        utils_dir = os.path.dirname(os.path.abspath(__file__)) 
-        # Naik satu level ke root project
-        root_dir = os.path.dirname(utils_dir)
-        # Masuk ke folder data
-        self.data_path = os.path.join(root_dir, 'data', 'dataset_tiktok.csv')
+        # TEKNIK JANGKAR: Cari file relatif terhadap folder 'utils' ini berada
+        # 1. Cari folder dimana script ini (data_processor.py) berada
+        current_file_dir = os.path.dirname(os.path.abspath(__file__))
         
+        # 2. Naik satu level ke folder root project (keluar dari folder 'utils')
+        root_project_dir = os.path.dirname(current_file_dir)
+        
+        # 3. Masuk ke folder 'data' dan cari filenya
+        self.data_path = os.path.join(root_project_dir, 'data', 'dataset_tiktok.csv')
+        
+        # [DEBUG] Print ke terminal agar Anda bisa lihat path pastinya
+        print(f"🔗 [SYSTEM PATH] Data Processor menggunakan file: {self.data_path}")
+        
+        self.df = None
+        # ... (sisanya sama) ...        
         # Print path ke terminal (agar bisa dicek di layar hitam cmd/terminal)
         print(f"DEBUG PATH: {self.data_path}")
         
