@@ -1,157 +1,138 @@
-"""
-Input Data Baru Page
-Menambahkan data video baru ke dataset secara manual
-(Final Fix: Safe Append Mode & Robust Column Alignment)
-"""
 import streamlit as st
 import pandas as pd
-import numpy as np
 import sys
 import os
-from datetime import datetime
 from pathlib import Path
+from datetime import datetime
 
-# Add parent directory to path for imports
+# Tambahkan path root agar bisa import utils
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Import fungsi asli yang terbukti WORKS
+from utils.input_handler import save_new_data_to_csv 
+# Import data processor HANYA untuk mengambil daftar akun (Read Only)
 from utils.data_processor import get_data_processor
 
-# Page config
-st.set_page_config(
-    page_title="Input Data Baru - Sistem Prediksi TikTok",
-    page_icon="📝",
-    layout="wide"
-)
+st.set_page_config(page_title="Input Data Baru", page_icon="📝")
 
-# Load Data Processor
-# (Hanya load instance, tidak perlu force reload di awal)
-dp = get_data_processor()
-
-# Header
 st.title("📝 Input Data Video Baru")
-st.markdown("Tambahkan data video baru ke dataset. Data akan otomatis disesuaikan dengan struktur database.")
+st.markdown("""
+Halaman ini berfungsi untuk **menambahkan data latih baru** ke dalam sistem. 
+Data yang disimpan akan otomatis masuk ke `dataset_tiktok.csv` dan langsung terbaca di **Dashboard Analitik**.
+""")
 
-st.markdown("---")
-
-# --- FORMULIR INPUT ---
-st.subheader("1. Identitas & Konten")
-
-# Pilihan Akun
-# Gunakan try-except untuk handle jika dp.df masih kosong
+# --- [BAGIAN TAMBAHAN 1] FITUR PILIH AKUN ---
+# Ambil daftar akun yang sudah ada dari DataProcessor
+dp = get_data_processor()
 try:
+    # Coba ambil list akun, jika gagal list kosong
     existing_authors = dp.get_unique_authors()
 except:
     existing_authors = []
 
-author_mode = st.radio("Akun Influencer:", ["Pilih Akun Lama", "Akun Baru"], horizontal=True)
+st.subheader("1. Identitas Akun")
+author_mode = st.radio("Mode Akun:", ["Pilih Akun Lama", "Input Akun Baru"], horizontal=True)
 
 if author_mode == "Pilih Akun Lama" and existing_authors:
-    author_name = st.selectbox("Nama Akun", options=existing_authors)
+    selected_author = st.selectbox("Nama Akun", options=existing_authors)
 else:
-    author_name = st.text_input("Nama Akun Baru (tanpa @)", placeholder="contoh: tiktok_creator")
+    selected_author = st.text_input("Nama Akun Baru (tanpa @)", placeholder="contoh: tiktok_creator")
 
-with st.form("input_data_form", clear_on_submit=True):
-    col1, col2 = st.columns(2)
+# --- FORMULIR ASLI (DENGAN SEDIKIT UPDATE UI) ---
+with st.form("input_form"):
+    st.subheader("2. Informasi Konten")
+    text_content = st.text_area("Caption / Deskripsi Video", placeholder="Tulis caption lengkap video di sini...")
     
+    col1, col2 = st.columns(2)
     with col1:
-        text_caption = st.text_area("Caption / Deskripsi", placeholder="#fyp #viral...", help="Wajib diisi untuk deteksi kategori")
-        video_url = st.text_input("Link Video (URL)")
-        audio_type = st.selectbox("Tipe Audio", ["Audio Original", "Audio Populer", "Audio Lainnya"])
-        music_name_placeholder = f"Manual Input ({audio_type})" 
-
+        duration = st.number_input("Durasi Video (detik)", min_value=1, value=60)
+        
+        # [BAGIAN TAMBAHAN 2] UI Audio yang lebih detail
+        audio_type_opt = st.selectbox("Jenis Audio", ["Audio Original", "Audio Lainnya", "Audio Populer", "Tanpa Audio"])
+        is_original_music = True if audio_type_opt == "Audio Original" else False
+        
     with col2:
-        st.markdown("**Metrik Performa**")
-        play_count = st.number_input("Views", min_value=0, step=100)
-        digg_count = st.number_input("Likes", min_value=0, step=10)
-        comment_count = st.number_input("Comments", min_value=0, step=1)
-        share_count = st.number_input("Shares", min_value=0, step=1)
-        duration = st.number_input("Durasi (detik)", min_value=1, value=15)
+        # Auto-fill nama musik jika Original
+        default_music_name = f"original sound - {selected_author}" if is_original_music else ""
+        music_name = st.text_input("Nama Musik (Opsional)", value=default_music_name, placeholder="Judul lagu...")
+        music_author = st.text_input("Pembuat Musik (Opsional)", value="-")
 
-    st.markdown("**Waktu Upload**")
-    c1, c2 = st.columns(2)
-    with c1: upload_date = st.date_input("Tanggal", value=datetime.now())
-    with c2: upload_time = st.time_input("Jam", value=datetime.now().time())
+    st.subheader("3. Statistik Performa (Data Historis)")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: play_count = st.number_input("Jumlah Views (Play)", min_value=0, step=100)
+    with c2: digg_count = st.number_input("Jumlah Likes (Digg)", min_value=0, step=10)
+    with c3: share_count = st.number_input("Jumlah Shares", min_value=0, step=1)
+    with c4: comment_count = st.number_input("Jumlah Comments", min_value=0, step=1)
 
-    st.markdown("---")
-    submitted = st.form_submit_button("💾 Simpan Data", type="primary", use_container_width=True)
+    st.subheader("4. Waktu Upload")
+    d_date = st.date_input("Tanggal Upload", datetime.now())
+    d_time = st.time_input("Jam Upload", datetime.now().time())
 
-# --- LOGIKA PENYIMPANAN AMAN (CORE FIX) ---
-if submitted:
-    if not author_name or not text_caption:
-        st.error("❌ Nama Akun dan Caption wajib diisi!")
-    else:
-        try:
-            # 1. Format Tanggal Standard (YYYY-MM-DD HH:MM:SS)
-            # Format string ini sangat aman dan mudah dibaca oleh Pandas
-            dt_obj = datetime.combine(upload_date, upload_time)
-            create_time_str = dt_obj.strftime("%Y-%m-%d %H:%M:%S") 
-            
-            is_original_audio = True if audio_type == "Audio Original" else False
-            
-            # 2. Pastikan File Ada & Baca Header
-            # Kita hanya butuh header (baris pertama) untuk menyamakan kolom
-            if os.path.exists(dp.data_path):
-                # Baca 1 baris saja untuk efisiensi
-                df_header = pd.read_csv(dp.data_path, nrows=1)
-                existing_columns = df_header.columns.tolist()
-            else:
-                st.error("Database (dataset_tiktok.csv) tidak ditemukan!")
-                st.stop()
+    # Tombol Submit
+    submitted = st.form_submit_button("💾 Simpan ke Database", type="primary")
 
-            # 3. Buat DataFrame Baru dengan Struktur Kolom yang SAMA PERSIS
-            # Ini mencegah kolom bergeser atau hilang
-            new_row = pd.DataFrame(columns=existing_columns)
-            new_row.loc[0] = np.nan # Inisialisasi baris kosong
+    if submitted:
+        # Validasi sederhana
+        if not text_content:
+            st.error("❌ Caption video tidak boleh kosong!")
+        elif not selected_author:
+            st.error("❌ Nama akun tidak boleh kosong!")
+        else:
+            # Format Waktu ISO 8601 (Sesuai dataset TikTok)
+            full_datetime = datetime.combine(d_date, d_time)
+            create_time_iso = full_datetime.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
-            # 4. Mapping Data Input ke Kolom CSV
-            data_map = {
-                'text': text_caption,
+            # Mapping input ke nama kolom dataset_tiktok.csv
+            input_data = {
+                # [DATA BARU] Masukkan Akun yang Dipilih
+                'authorMeta.name': selected_author,
+                'authorMeta.nickName': selected_author, 
+                'authorMeta.verified': False, # Default
+                
+                # Data Konten
+                'text': text_content,
+                'videoMeta.duration': duration,
+                'musicMeta.musicOriginal': is_original_music,
+                'musicMeta.musicName': music_name if music_name else f"Sound ({audio_type_opt})",
+                'musicMeta.musicAuthor': music_author,
+                
+                # Statistik
+                'playCount': play_count,
                 'diggCount': digg_count,
                 'shareCount': share_count,
-                'playCount': play_count,
                 'commentCount': comment_count,
-                'videoMeta.duration': duration,
-                'musicMeta.musicName': music_name_placeholder,
-                'musicMeta.musicOriginal': is_original_audio,
-                'createTimeISO': create_time_str, # Format tanggal aman
-                'webVideoUrl': video_url if video_url else f"manual_{int(datetime.now().timestamp())}",
-                'authorMeta.name': author_name,
                 
-                # Isi kolom pelengkap agar tidak NaN (Penting!)
-                'authorMeta.nickName': author_name,
-                'authorMeta.verified': False,
-                'musicMeta.musicAuthor': 'Unknown',
-                'secretID': 'manual_input',
-                'videoMeta.height': 0,
-                'videoMeta.width': 0
+                # Waktu
+                'createTimeISO': create_time_iso,
+                
+                # Data Teknis Tambahan (Agar tidak error saat dibaca Dashboard)
+                'webVideoUrl': 'manual_input',
+                'videoMeta.height': 1920,
+                'videoMeta.width': 1080,
+                'id': f"manual_{int(datetime.now().timestamp())}"
             }
 
-            # Masukkan data ke dalam kolom yang sesuai
-            for col, val in data_map.items():
-                if col in new_row.columns:
-                    new_row.at[0, col] = val
-
-            # Isi kolom lain yang kosong dengan nilai default aman (0)
-            # Agar tidak dianggap baris rusak oleh DataProcessor
-            new_row = new_row.fillna(0) 
-
-            # 5. SIMPAN KE CSV (MODE APPEND)
-            # mode='a' : Tambahkan ke bawah
-            # header=False : Jangan tulis nama kolom lagi
-            new_row.to_csv(dp.data_path, mode='a', header=False, index=False)
+            # --- EKSEKUSI PENYIMPANAN (MENGGUNAKAN FUNGSI ASLI ANDA) ---
+            # Kita mengirim dictionary yang LEBIH LENGKAP ke fungsi lama
+            success, message = save_new_data_to_csv(input_data)
             
-            # 6. FORCE RELOAD & CLEAR CACHE
-            # Ini wajib agar Dashboard menyadari ada data baru
-            st.cache_data.clear()
-            get_data_processor(force_reload=True) # Reset instance global
-            st.session_state["data_changed"] = True # Sinyal ke Dashboard
-            
-            st.success("✅ Berhasil! Data baru telah ditambahkan ke database.")
-            
-            with st.expander("👁️ Lihat Data yang Masuk"):
-                st.dataframe(new_row)
+            if success:
+                st.success(f"✅ {message}")
                 
-            st.info("🔄 Cache sistem telah dibersihkan. Dashboard akan memuat data terbaru.")
-
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat menyimpan: {e}")
+                # --- UPDATE DASHBOARD AGAR TERBACA ---
+                st.cache_data.clear() # 1. Hapus cache view
+                
+                # 2. Paksa DataProcessor baca ulang file CSV dari disk
+                # (Ini penting agar dashboard tidak pakai data lama di RAM)
+                get_data_processor(force_reload=True) 
+                
+                # 3. Trigger rerun dashboard
+                st.session_state["data_changed"] = True 
+                
+                st.info("🔄 Cache dibersihkan. Data baru siap ditampilkan di Dashboard.")
+                
+                # Tampilkan preview data yang disimpan
+                with st.expander("Lihat Data Tersimpan"):
+                    st.json(input_data)
+            else:
+                st.error(f"❌ Gagal: {message}")
