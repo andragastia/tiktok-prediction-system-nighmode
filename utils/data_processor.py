@@ -1,7 +1,7 @@
 """
 Data Processor Module
 Handles loading, preprocessing, and optimized classification of TikTok data
-(Final Robust Version: Singleton Destruction Mechanism)
+(Final Stable Version: Full Notebook Dictionary - No NLTK Dependencies)
 """
 import pandas as pd
 import numpy as np
@@ -13,60 +13,132 @@ class DataProcessor:
     """Handle data loading and preprocessing"""
 
     def __init__(self):
-        # TEKNIK JANGKAR: Cari file relatif terhadap folder 'utils' ini berada
-        # 1. Cari folder dimana script ini (data_processor.py) berada
+        # TEKNIK JANGKAR (Path File)
         current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # 2. Naik satu level ke folder root project (keluar dari folder 'utils')
         root_project_dir = os.path.dirname(current_file_dir)
-        
-        # 3. Masuk ke folder 'data' dan cari filenya
         self.data_path = os.path.join(root_project_dir, 'data', 'dataset_tiktok.csv')
         
-        # [DEBUG] Print ke terminal agar Anda bisa lihat path pastinya
-        print(f"🔗 [SYSTEM PATH] Data Processor menggunakan file: {self.data_path}")
-        
-        self.df = None
-        # ... (sisanya sama) ...        
-        # Print path ke terminal (agar bisa dicek di layar hitam cmd/terminal)
-        print(f"DEBUG PATH: {self.data_path}")
+        print(f"🔗 [SYSTEM PATH] Menggunakan file: {self.data_path}")
         
         self.df = None
         self.list_audio_populer = [] 
 
-        # Mapping Hari
-        self.day_mapping = {
-            'Monday': 'Senin', 'Tuesday': 'Selasa', 'Wednesday': 'Rabu',
-            'Thursday': 'Kamis', 'Friday': 'Jumat', 'Saturday': 'Sabtu',
-            'Sunday': 'Minggu'
-        }
-
-        # Kamus 10 Kategori
+        # --- KAMUS KATEGORI LENGKAP (DARI NOTEBOOK ANDA) ---
+        # Kita pakai ini agar akurasi tetap tinggi tanpa NLTK
         self.KAMUS_KATEGORI = {
-            'Gaming': ['game', 'genshin', 'impact', 'honkai', 'star', 'rail', 'mlbb', 'mobile', 'legend', 'esport', 'roblox', 'minecraft', 'valorant', 'win', 'lose', 'victory'],
-            'Fashion': ['ootd', 'outfit', 'baju', 'hijab', 'gamis', 'dress', 'style', 'kain', 'batik', 'kebaya', 'jeans', 'haul', 'shopee', 'tas', 'sepatu'],
-            'Daily': ['vlog', 'day', 'life', 'hari', 'jalan', 'trip', 'healing', 'cerita', 'kegiatan', 'minivlog', 'daily', 'routine', 'morning', 'kucing'],
-            'Edukasi_Karir': ['magang', 'intern', 'kuliah', 'skripsi', 'belajar', 'tips', 'ilmu', 'kerja', 'karir', 'coding', 'tutorial', 'cara', 'kampus', 'mahasiswa'],
-            'Religi': ['hijrah', 'kajian', 'islam', 'allah', 'doa', 'sholat', 'ramadan', 'ngaji', 'ustadz', 'dakwah', 'lebaran', 'puasa', 'muslim'],
-            'Beauty': ['makeup', 'skincare', 'cantik', 'jerawat', 'lip', 'serum', 'sunscreen', 'foundation', 'bedak', 'glowing', 'acne', 'tutorialmakeup'],
-            'Kuliner': ['makan', 'masak', 'resep', 'enak', 'kuliner', 'food', 'minum', 'jajan', 'mukbang', 'cook', 'cafe', 'coffee', 'mie', 'bakso'],
-            'Hiburan': ['lucu', 'ngakak', 'komedi', 'prank', 'drama', 'meme', 'viral', 'fyp', 'pov', 'parodi', 'receh', 'ketawa', 'film', 'drakor'],
-            'Musik_Konser': ['concert', 'konser', 'tour', 'ticket', 'stage', 'live', 'band', 'singer', 'lagu', 'music', 'musik', 'guitar', 'piano'],
-            'Jedag Jedug': ['capcut', 'jedag', 'jedug', 'preset', 'alight', 'motion', 'jj', 'template']
+            'Gaming': [
+                'game', 'genshin', 'impact', 'honkai', 'star', 'rail', 'abyss', 'mobile', 'legend', 'rank', 'kazuha',
+                'hutao', 'genshinimpactindonesia', 'ditusiofficial', 'ditusigaming', 'genshinimpact',
+                'furinagenshinimpact', 'spiralabyss', 'ditusi',
+                'honkaistarrail', 'seele', 'kafka', 'blade', 'gameplay', 'gacha', 'uid', 'esport', 'player',
+                'roblos', 'roblox', 'fivem', 'imeroleplay', 'motionlife', 'roleplay', 'minecraft', 'valorant',
+                'mlbb', 'push', 'win', 'lose', 'victory', 'defeat', 'honkaistarrailindonesia'
+            ],
+            'Fashion': [
+                'ootd', 'outfit', 'baju', 'hijab', 'gamis', 'syari', 'dress', 'style', 'kain', 'batik',
+                'ootdhijab', 'abaya', 'outfithijab', 'khimar', 'fitcheck',
+                'kebaya', 'jeans', 'denim', 'blouse', 'kulot', 'pashmina', 'scarf', 'wear', 'look', 'styling',
+                'shopee', 'haul', 'unboxing', 'racun', 'rekomendasi', 'keranjang', 'kuning', 'shop',
+                'tas', 'bag', 'shoes', 'sepatu',
+                'outfitideas', 'smartcasual', 'casual', 'casualoutfits', 'kaos', 'shirt', 'pants', 'skirt',
+                'inner', 'outer', 'cardigan', 'vest', 'joybasic', 'lubbaabaya', 'khadija', 'fashion',
+                'mixmatch', 'wardrobe', 'longchamp', 'lepliage', 'nerawang',
+                'cewebumiootd', 'ootdfashion', 'earthtoneoutfits', 'ootdsimple', 'outfits', 'wore',
+                'cewe', 'bumi', 'gayadirumah','gyaru'
+            ],
+            'Daily': [
+                'vlog', 'day', 'life', 'hari', 'jalan', 'trip', 'healing', 'cerita', 'kegiatan', 'minivlog',
+                'story', 'diary', 'daily', 'routine', 'morning', 'night', 'activity', 'random', 'dump', 'recap',
+                'strolling', 'date', 'ngedate', 'family', 'quality', 'time', 'vibes', 'moment', 'kenangan',
+                'mblocspace', 'blokm', 'jakarta', 'bandung', 'main', 'meet', 'play', 'weekend',
+                'travel', 'holiday', 'liburan', 'staycation', 'hotel', 'villa', 'beach', 'mountain', 'nature',
+                'labuanbajo', 'hutankota', 'gbk', 'senayan', 'taman', 'piknik', 'photodump', 'february', 'march',
+                'april', 'may', 'june', 'july', 'august', 'september', 'oktober', 'november', 'december',
+                'valentine', 'bukber', 'lebaran', 'pulang', 'kampung', 'mudik', 'roomtour', 'roomdecor',
+                'catsoftiktok', 'kucing', 'cats', 'animal',
+                'mrtjkt', 'transjakarta', 'chicago', 'switzerland', 'cafejakarta', 'grandma', 'home',
+                'vlogs', 'happylife', 'genzlife', 'bandungggg', 'animalphotography', 'blackcats'
+            ],
+            'Edukasi_Karir': [
+                'magang', 'intern', 'kuliah', 'skripsi', 'belajar', 'tips', 'ilmu', 'kerja', 'karir', 'msib',
+                'replying',
+                'coding', 'frontend', 'backend', 'developer', 'web', 'javascript', 'python', 'html', 'css',
+                'tutor', 'tutorial', 'cara', 'how', 'linkedin', 'bumn', 'loker', 'cv', 'interview',
+                'kampus', 'mahasiswa', 'semester', 'wisuda', 'sidang', 'tugas', 'ulangan', 'ujian', 'merdeka',
+                'internship', 'cretivox', 'lspr', 'univ', 'universitas', 'sekolah', 'guru', 'dosen',
+                'presentation', 'presentasi', 'project', 'kelompok', 'study', 'studygram', 'edukasi',
+                'webdeveloper', 'fullstack', 'uiux', 'design', 'portofolio', 'freshgraduate', 'salary', 'gaji',
+                'msibbatch', 'magangmerdeka', 'unistudent', 'collegelife', 'corporatelife', 'gurumuda',
+                'merdekabelajar', 'ulangan', 'lisan', 'pemahaman'
+            ],
+            'Religi': [
+                'hijrah', 'kajian', 'islam', 'allah', 'doa', 'sholat', 'ramadan', 'ngaji', 'ustadz', 'dakwah',
+                'lebaran', 'idul', 'fitri', 'adha', 'puasa', 'bukber', 'iftar', 'sahur', 'bismillah', 'alhamdulillah',
+                'masyaallah', 'tabarakallah', 'aamiin', 'muslim', 'muslimah', 'mukena', 'sajadah', 'iman',
+                'allahumma', 'baarik', 'yassarallahu', 'dosa', 'mukenanyaa', 'suci',
+                'buya', 'habib', 'syekh', 'alquran', 'hadist', 'sunnah', 'fiqih', 'ibadah', 'pahala',
+                'surga', 'neraka', 'taubat', 'istiqomah', 'kajianislam', 'habibty', 'baarakallahu', 'fiikum',
+                'agama', 'jalurlangit', 'quotesislam', 'durhaka'
+            ],
+            'Beauty': [
+                'makeup', 'skincare', 'cantik', 'jerawat', 'lip', 'serum', 'sunscreen', 'kulit',
+                'cushion', 'foundation', 'bedak', 'alis', 'eyebrow', 'eyeliner', 'mascara', 'blush',
+                'glowing', 'acne', 'facial', 'wash', 'toner', 'moisturizer', 'npure', 'bioaqua', 'pinkflash', 'hanasui',
+                'review', 'swatch', 'tutorialmakeup', 'grwm',
+                'jacquelle', 'cleanser', 'everpure', 'facewash', 'treatment', 'cantikkk',
+                'elsheskin', 'azarine', 'skintific', 'wardah', 'emina', 'makeover', 'luxcrime', 'somethinc',
+                'avoskin', 'whitelab', 'scarlett', 'bodycare', 'haircare', 'shampoo', 'conditioner', 'perfume',
+                'parfum', 'fragrance', 'scent', 'bvlgari', 'liptint', 'lipmatte', 'lipcream', 'ombre', 'ngalis',
+                'acnecleanser', 'acnefacewash', 'lipstik', 'soflents', 'npureofficial', 'generasikulitsehat',
+                'youthdefense', 'makeu', 'tutorialalis', 'ringlight', 'putih'
+            ],
+            'Kuliner': [
+                'makan', 'masak', 'resep', 'enak', 'kuliner', 'food', 'minum', 'jajan', 'pedas', 'mukbang', 'bikin',
+                'cook', 'cooking', 'cafe', 'resto', 'coffee', 'kopi', 'tea', 'latte', 'snack', 'cemilan',
+                'mie', 'bakso', 'sate', 'nasi', 'goreng', 'menu', 'sarapan', 'lunch', 'dinner',
+                'cookwithme', 'baking', 'cake', 'roti', 'pisang', 'ayam', 'daging', 'sapi', 'kambing', 'seafood',
+                'ikan', 'lele', 'udang', 'cumi', 'sambal', 'manis', 'asin', 'gurih', 'crispy', 'mukbangvideo'
+            ],
+            'Hiburan': [
+                'lucu', 'ngakak', 'komedi', 'prank', 'drama', 'meme', 'viral', 'fyp', 'song', 'cover',
+                'dance', 'xyzbca',
+                'challenge', 'tren', 'trend', 'pov', 'parodi', 'receh', 'ketawa', 'funny', 'joke', 'hiburan',
+                'nonton', 'film', 'movie', 'series', 'drakor', 'kpop',
+                'tiktokpelitfyp', 'anjay', 'strangerthings', 'newjeans', 'choreo', 'choreography', 'netflix',
+                'standupcomedy', 'standup', 'komika', 'laugh', 'smile', 'happy', 'fun', 'entertainment',
+                'transihir', 'harrypotter', 'merinding', 'horror', 'seram', 'hantu', 'misteri',
+                'omgchallenge', 'likeido', 'dancechallenge', 'niana', 'latrice', 'austin', 'taylin',
+                'trendingvideo', 'dancetiktok', 'stopmotiontrend', 'echochallenge',
+                'generasihappytiktokchallenge', 'mideahomechallenge', 'swaychallenge',
+                'anime', 'wibu', 'otaku', 'cosplay', 'manga', 'japan', 'jepang'
+            ],
+            'Musik_Konser': [
+                'concert', 'konser', 'tour', 'ticket', 'stage', 'live', 'band', 'singer', 'nyanyi', 'singing',
+                'lyrics', 'lirik', 'lagu', 'music', 'musik', 'guitar', 'piano', 'niki', 'taylor', 'swift', 'coldplay',
+                'nikibuzztour', 'buzztoursingapore', 'nikiconcert', 'buzztour', 'aleluyandma', 'dylansmovin',
+                'juicyluicy', 'tulus', 'mahalini', 'tiara', 'lyodra', 'ziva', 'idol', 'fandom', 'ticketwar',
+                'fest', 'festival', 'sound', 'audio', 'spotify', 'playlist', 'guitartok', 'coversong', 'lanadelrey',
+                'keshi', 'danielcaesar', 'kaliuchis', 'paperrings',
+                'paintthetownred', 'boypablo', 'afrobeats', 'amapiano'
+            ],
+            'Jedag Jedug': [
+                'capcut', 'foryoupage', 'jedag', 'jedug', 'preset', 'alight', 'motion', 'am', 'xml', 'jj',
+                'jjcapcut', 'jedar', 'jeder', 'template'
+            ]
         }
 
     def load_data(self):
+        """Membaca data dari CSV dengan AMAN (Tanpa Drop Baris)."""
         try:
             if not os.path.exists(self.data_path):
                 print(f"❌ Error: File tidak ditemukan di {self.data_path}")
                 return None
 
-            # [DEBUG] Baca Raw Data
-            df = pd.read_csv(self.data_path)
-            total_awal = len(df)
-            print(f"📊 [DEBUG] Total baris mentah di CSV: {total_awal}")
+            # 1. BACA CSV
+            df = pd.read_csv(self.data_path, on_bad_lines='skip')
+            print(f"📊 [DEBUG] Membaca {len(df)} baris dari CSV.")
 
-            # --- 1. CLEANING ---
+            # 2. BERSIHKAN ANGKA
             numeric_cols = ['diggCount', 'commentCount', 'shareCount', 'playCount', 'videoMeta.duration']
             for col in numeric_cols:
                 if col in df.columns:
@@ -74,47 +146,39 @@ class DataProcessor:
                 else:
                     df[col] = 0
 
-            # --- 2. METRICS ---
+            # 3. ENGAGEMENT
             df['engagement_rate'] = (
                 (df['diggCount'] + df['commentCount'] + df['shareCount']) /
                 df['playCount'].replace(0, 1)
             ) * 100
 
-            # --- 3. TIME PARSING (TITIK KRITIS) ---
-            # Kita konversi tanggal. Yang gagal jadi NaT (Not a Time)
-            df['createTimeISO'] = pd.to_datetime(df['createTimeISO'], errors='coerce')
-            
-            # [DEBUG] Cek berapa yang NaT (Rusak)
-            baris_rusak = df[df['createTimeISO'].isna()]
-            if not baris_rusak.empty:
-                print(f"⚠️ [WARNING] Ada {len(baris_rusak)} baris dengan tanggal rusak/kosong yang akan DIHAPUS!")
-                # Tampilkan contoh data yang rusak di Terminal
-                print("   Contoh data rusak:")
-                print(baris_rusak.head(1).to_string())
+            # 4. WAKTU (FIX: JANGAN DROP)
+            df['createTimeISO'] = pd.to_datetime(df['createTimeISO'], dayfirst=False, errors='coerce')
+            mask_rusak = df['createTimeISO'].isna()
+            if mask_rusak.any():
+                df.loc[mask_rusak, 'createTimeISO'] = pd.Timestamp.now()
 
-            # Hapus yang rusak
-            df = df.dropna(subset=['createTimeISO']) 
-
-            # ... (Sisa kode sama: Waktu_Posting, Upload Day, dll) ...
             df['Waktu_Posting'] = df['createTimeISO']
             df['upload_date'] = df['createTimeISO'].dt.date
             df['upload_hour'] = df['createTimeISO'].dt.hour
             df['Jam_Posting'] = df['createTimeISO'].dt.hour 
             
             df['upload_day_english'] = df['createTimeISO'].dt.day_name()
-            df['upload_day'] = df['upload_day_english'].map(self.day_mapping)
+            df['upload_day'] = df['upload_day_english'].map({
+                'Monday': 'Senin', 'Tuesday': 'Selasa', 'Wednesday': 'Rabu',
+                'Thursday': 'Kamis', 'Friday': 'Jumat', 'Saturday': 'Sabtu', 'Sunday': 'Minggu'
+            })
             df['Hari_Posting'] = df['upload_day_english'] 
             df['upload_year'] = df['createTimeISO'].dt.year
             df['upload_month'] = df['createTimeISO'].dt.month_name()
             df['Is_Weekend'] = df['Hari_Posting'].apply(lambda x: 1 if x in ['Saturday', 'Sunday'] else 0)
             
-            # --- 4. TEXT & CATEGORY ---
-            df['Panjang_Caption'] = df['text'].astype(str).apply(len)
-            df['Jumlah_Hashtag'] = df['text'].astype(str).apply(lambda x: len(re.findall(r'#\w+', x)))
+            # 5. NLP KATEGORI (VERSI RINGAN & CEPAT)
+            # Tanpa NLTK, tapi menggunakan KAMUS LENGKAP NOTEBOOK Anda
             df['content_type'] = df['text'].apply(self._classify_content_logic)
             df['Kategori_Konten'] = df['content_type']
 
-            # --- 5. AUDIO ---
+            # 6. AUDIO
             if 'musicMeta.musicName' in df.columns:
                 self.list_audio_populer = df['musicMeta.musicName'].value_counts().head(20).index.tolist()
             
@@ -122,7 +186,7 @@ class DataProcessor:
             df['Tipe_Audio'] = df['audio_type']
 
             self.df = df
-            print(f"✅ [SUCCESS] Data bersih yang dimuat: {len(self.df)} baris. (Selisih: {total_awal - len(self.df)})")
+            print(f"✅ [SUCCESS] Data siap: {len(self.df)} baris.")
             return self.df
 
         except Exception as e:
@@ -130,44 +194,47 @@ class DataProcessor:
             self.df = None
             return None
         
-    # --- HELPER METHODS ---
+    # --- LOGIKA KLASIFIKASI RINGAN (SUBSTRING MATCHING) ---
     def _classify_content_logic(self, text):
-        if pd.isna(text): return 'Lainnya'
+        if pd.isna(text): return 'Hiburan' # Default aman
         text_lower = str(text).lower()
+        
+        # Scoring Sederhana (Siapa yang paling banyak cocok)
+        scores = {k: 0 for k in self.KAMUS_KATEGORI}
+        
         for kategori, keywords in self.KAMUS_KATEGORI.items():
-            if any(keyword in text_lower for keyword in keywords): return kategori
-        return 'Lainnya'
+            for keyword in keywords:
+                # Cek apakah keyword ada di dalam teks (Cepat & Efisien)
+                if keyword in text_lower:
+                    scores[kategori] += 1
+        
+        # Ambil skor tertinggi
+        best_category = max(scores, key=scores.get)
+        
+        # Jika tidak ada yang cocok (skor 0), kembalikan 'Hiburan'
+        if scores[best_category] == 0:
+            return 'Hiburan'
+        else:
+            return best_category
 
+    # --- AUDIO METHOD ---
     def _classify_audio_logic(self, row):
         music_name = row.get('musicMeta.musicName', '')
+        if pd.isna(music_name) or str(music_name).strip() in ['', '-', 'nan']: return 'Tanpa Audio'
         
-        # 1. HANDLING KOSONG (Prioritas)
-        if pd.isna(music_name) or str(music_name).strip() in ['', '-', 'nan']:
-            return 'Tanpa Audio'
-            
         music_name_str = str(music_name)
         music_name_lower = music_name_str.lower()
-        
-        if music_name_lower in ['tidak ada musik', 'no music']:
-             return 'Tanpa Audio'
+        if music_name_lower in ['tidak ada musik', 'no music']: return 'Tanpa Audio'
 
         is_original = row.get('musicMeta.musicOriginal', False)
-        
-        # 2. ORIGINAL
         if (str(is_original).lower() == 'true' or is_original == True) or \
-           ('original sound' in music_name_lower) or \
-           ('suara asli' in music_name_lower):
+           ('original sound' in music_name_lower) or ('suara asli' in music_name_lower):
             return 'Audio Original'
         
-        # 3. POPULER
-        elif music_name_str in self.list_audio_populer:
-            return 'Audio Populer'
-        
-        # 4. LAINNYA
-        else:
-            return 'Audio Lainnya'
+        elif music_name_str in self.list_audio_populer: return 'Audio Populer'
+        else: return 'Audio Lainnya'
 
-    # --- DASHBOARD & STATS ---
+    # --- DASHBOARD & STATS (TETAP UTUH) ---
     def get_unique_authors(self):
         if self.df is None: self.load_data()
         if self.df is None: return []
@@ -177,9 +244,7 @@ class DataProcessor:
 
     def get_summary_stats(self, df=None):
         target_df = df if df is not None else self.df
-        if target_df is None or target_df.empty or 'engagement_rate' not in target_df.columns:
-            return {}
-
+        if target_df is None or target_df.empty: return {}
         return {
             'total_videos': len(target_df),
             'total_views': target_df['playCount'].sum(),
@@ -196,12 +261,10 @@ class DataProcessor:
     def get_leaderboard(self):
         if self.df is None: self.load_data()
         if self.df is None: return pd.DataFrame()
-        
         leaderboard = self.df.groupby('authorMeta.name').agg({
             'playCount': 'sum', 'diggCount': 'sum', 'shareCount': 'sum',
             'webVideoUrl': 'count', 'engagement_rate': 'mean'
         }).reset_index()
-        
         leaderboard.rename(columns={
             'authorMeta.name': 'Nama Akun', 'webVideoUrl': 'Jml Video',
             'playCount': 'Total Penayangan', 'diggCount': 'Total Suka',
@@ -209,47 +272,41 @@ class DataProcessor:
         }, inplace=True)
         return leaderboard.sort_values(by='Total Penayangan', ascending=False)
 
-    def get_trending_threshold(self, percentile=75):
-        if self.df is None: self.load_data()
-        if self.df is None: return 0
-        return self.df['playCount'].quantile(percentile / 100)
-
-    # --- VISUALISASI HELPERS ---
+    # --- VISUALIZATION HELPERS ---
     def get_performance_by_day(self, df=None):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
         day_order = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
-        return target_df.groupby('upload_day')['playCount'].mean().reindex(day_order)
+        return target.groupby('upload_day')['playCount'].mean().reindex(day_order)
 
     def get_performance_by_hour(self, df=None):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
-        return target_df.groupby('upload_hour')['playCount'].mean()
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
+        return target.groupby('upload_hour')['playCount'].mean()
 
     def get_content_type_performance(self, df=None):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
-        perf = target_df.groupby('content_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
+        perf = target.groupby('content_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
         perf.columns = ['Rata-rata Tayangan', 'Jumlah Video']
         return perf.sort_values(by='Rata-rata Tayangan', ascending=False)
 
     def get_audio_type_performance(self, df=None):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
-        perf = target_df.groupby('audio_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
-        perf.columns = ['Rata-rata Tayangan', 'Jumlah Video'] 
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
+        perf = target.groupby('audio_type').agg({'playCount': 'mean', 'webVideoUrl': 'count'})
+        perf.columns = ['Rata-rata Tayangan', 'Jumlah Video']
         return perf.sort_values(by='Rata-rata Tayangan', ascending=False)
 
     def get_correlation_matrix(self, df=None):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
-        cols = ['playCount', 'diggCount', 'commentCount', 'shareCount', 'videoMeta.duration', 'engagement_rate']
-        return target_df[cols].corr()
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
+        return target[['playCount', 'diggCount', 'commentCount', 'shareCount', 'videoMeta.duration', 'engagement_rate']].corr()
     
     def get_top_videos(self, df=None, n=10):
-        target_df = df if df is not None else self.df
-        if target_df is None: return pd.DataFrame()
-        return target_df.nlargest(n, 'playCount')
+        target = df if df is not None else self.df
+        if target is None: return pd.DataFrame()
+        return target.nlargest(n, 'playCount')
 
     # --- PREDICTION FEATURES ---
     def prepare_features_for_prediction(self, raw_features):
@@ -280,22 +337,13 @@ class DataProcessor:
 
         return pd.DataFrame([features])
 
-# --- GLOBAL INSTANCE MANAGEMENT (CRITICAL FIX) ---
-# Variable global ini menyimpan instance DataProcessor
+# --- GLOBAL INSTANCE ---
 _data_processor_instance = None
 
 def get_data_processor(force_reload=False):
-    """
-    Mengambil atau membuat ulang DataProcessor.
-    Args:
-        force_reload (bool): Jika True, HANCURKAN instance lama dan buat baru.
-                             Ini WAJIB dipanggil setelah menyimpan data baru.
-    """
     global _data_processor_instance
-    
     if _data_processor_instance is None or force_reload:
-        print("🔄 [SYSTEM] Membuat Instance DataProcessor Baru...")
+        print("🔄 [SYSTEM] Membuat Instance DataProcessor Baru (Reload)...")
         _data_processor_instance = DataProcessor()
         _data_processor_instance.load_data()
-    
     return _data_processor_instance

@@ -235,28 +235,27 @@ if selected_author == "Semua Kreator":
     # Tampilkan dengan formatting yang rapi
     tampilan_leaderboard = leaderboard_df.copy()
     
-    # Format angka agar ada koma ribuan
-    for col in ['Total Penayangan', 'Total Suka', 'Total Bagikan']:
+    # 1. Tentukan kolom angka yang mau diformat
+    cols_to_format = ['Total Penayangan', 'Total Suka', 'Total Bagikan']
+    
+    # 2. Loop dan format menjadi string dengan koma (contoh: 10,000,000)
+    for col in cols_to_format:
         if col in tampilan_leaderboard.columns:
+            # Menggunakan f"{x:,.0f}" -> Format float dengan koma ribuan, 0 desimal
             tampilan_leaderboard[col] = tampilan_leaderboard[col].apply(lambda x: f"{x:,.0f}")
             
+    # 3. Format Persentase ER secara khusus
     if 'Rata-rata ER (%)' in tampilan_leaderboard.columns:
         tampilan_leaderboard['Rata-rata ER (%)'] = tampilan_leaderboard['Rata-rata ER (%)'].apply(lambda x: f"{x:.2f}%")
         
+    # 4. Tampilkan Tabel (Tanpa Progress Bar, Bersih & Rapi)
     st.dataframe(
         tampilan_leaderboard, 
         use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Nama Akun": st.column_config.TextColumn("Nama Akun", width="medium"),
-            "Total Penayangan": st.column_config.ProgressColumn(
-                "Total Tayangan",
-                format="%s",
-                min_value=0,
-                max_value=int(leaderboard_df['Total Penayangan'].max()) if not leaderboard_df.empty else 100
-            ),
-        }
+        hide_index=True
+        # Tidak perlu column_config lagi karena format sudah ditangani di langkah 2
     )
+    
     st.markdown("---")
 
 # ==================== PERFORMANCE OVER TIME ====================
